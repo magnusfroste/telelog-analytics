@@ -26,7 +26,7 @@ serve(async (req) => {
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch call logs with more records since Claude can handle larger context
+    // Fetch 1000 call logs for comprehensive analysis
     const { data: callLogs, error: dbError } = await supabase
       .from('call_logs')
       .select(`
@@ -41,13 +41,13 @@ serve(async (req) => {
         created
       `)
       .order('created', { ascending: false })
-      .limit(200); // Increased limit since Claude can handle more context
+      .limit(1000); // Increased to 1000 records for deeper analysis
 
     if (dbError) {
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // Create a more detailed summary of the data
+    // Create a comprehensive summary of the data
     const summary = {
       totalCalls: callLogs.length,
       avgCallDuration: Math.round(
@@ -73,16 +73,18 @@ serve(async (req) => {
       )
     };
 
-    // Add data summary to the system message
-    const dataContext = `Here is the call center data summary (based on last ${callLogs.length} records):
+    // Add detailed data summary to the system message
+    const dataContext = `Here is the comprehensive call center data summary (based on last ${callLogs.length} records):
 - Average call duration: ${summary.avgCallDuration} seconds
 - Total SMS messages: ${summary.totalSMS}
 - E-identification rate: ${summary.eIdRate}%
 - Task types distribution: ${summary.taskTypes.map(([type, count]) => `${type}: ${count}`).join(', ')}
 - Closing methods: ${summary.closingMethods.map(([method, count]) => `${method}: ${count}`).join(', ')}
 
-Raw data sample (first 10 records):
-${JSON.stringify(callLogs.slice(0, 10), null, 2)}`;
+Raw data sample (showing first 15 records for context):
+${JSON.stringify(callLogs.slice(0, 15), null, 2)}
+
+Full dataset contains ${callLogs.length} records for comprehensive analysis.`;
 
     // Update the first system message to include the data
     const updatedMessages = messages.map((msg: any, index: number) => {
@@ -95,7 +97,7 @@ ${JSON.stringify(callLogs.slice(0, 10), null, 2)}`;
       return msg;
     });
 
-    console.log('Making request to Anthropic API...');
+    console.log('Making request to Anthropic API with expanded dataset...');
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
