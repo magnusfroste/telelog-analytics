@@ -9,6 +9,99 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      call_logs: {
+        Row: {
+          call_time_phone: number | null
+          call_time_video: number | null
+          category: string | null
+          closed: string | null
+          created: string | null
+          created_at: string | null
+          created_by: string | null
+          created_on: string | null
+          customer_number: string | null
+          e_identification: boolean | null
+          first_contact: string | null
+          first_offered_time: string | null
+          first_user_id: string | null
+          form_closing: string | null
+          id: number
+          last_user_id: string | null
+          number_pres: string | null
+          phone_no: string | null
+          post_tag_code: string | null
+          recordings: number | null
+          scheduled_time: string | null
+          sms_received: number | null
+          sms_sent: number | null
+          teleq_id: number | null
+          type_of_task_closed: string | null
+          type_of_task_created: string | null
+          unique_task_id: string | null
+          user_time: string | null
+        }
+        Insert: {
+          call_time_phone?: number | null
+          call_time_video?: number | null
+          category?: string | null
+          closed?: string | null
+          created?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_on?: string | null
+          customer_number?: string | null
+          e_identification?: boolean | null
+          first_contact?: string | null
+          first_offered_time?: string | null
+          first_user_id?: string | null
+          form_closing?: string | null
+          id?: number
+          last_user_id?: string | null
+          number_pres?: string | null
+          phone_no?: string | null
+          post_tag_code?: string | null
+          recordings?: number | null
+          scheduled_time?: string | null
+          sms_received?: number | null
+          sms_sent?: number | null
+          teleq_id?: number | null
+          type_of_task_closed?: string | null
+          type_of_task_created?: string | null
+          unique_task_id?: string | null
+          user_time?: string | null
+        }
+        Update: {
+          call_time_phone?: number | null
+          call_time_video?: number | null
+          category?: string | null
+          closed?: string | null
+          created?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_on?: string | null
+          customer_number?: string | null
+          e_identification?: boolean | null
+          first_contact?: string | null
+          first_offered_time?: string | null
+          first_user_id?: string | null
+          form_closing?: string | null
+          id?: number
+          last_user_id?: string | null
+          number_pres?: string | null
+          phone_no?: string | null
+          post_tag_code?: string | null
+          recordings?: number | null
+          scheduled_time?: string | null
+          sms_received?: number | null
+          sms_sent?: number | null
+          teleq_id?: number | null
+          type_of_task_closed?: string | null
+          type_of_task_created?: string | null
+          unique_task_id?: string | null
+          user_time?: string | null
+        }
+        Relationships: []
+      }
       memory: {
         Row: {
           created_at: string
