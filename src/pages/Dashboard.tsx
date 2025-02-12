@@ -31,6 +31,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import InsightsChatDrawer from '@/components/InsightsChatDrawer';
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -459,6 +460,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+      <InsightsChatDrawer />
     </div>
   );
 };
