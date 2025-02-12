@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from "@/components/ui/use-toast";
 import {
   Drawer,
   DrawerClose,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/drawer";
 import { MessageCircle, Send, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -22,6 +24,7 @@ interface Message {
 }
 
 const InsightsChatDrawer = () => {
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,15 +37,36 @@ const InsightsChatDrawer = () => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
-    // TODO: Integrate with your preferred LLM service
-    // For now, we'll just simulate a response
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-with-data', {
+        body: {
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an analytics assistant helping users understand their call center data. Be concise and focused on providing actionable insights. When discussing metrics use concrete numbers and percentages where possible.'
+            },
+            ...messages,
+            { role: 'user', content: userMessage }
+          ]
+        }
+      });
+
+      if (error) throw error;
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Based on the analytics data, I notice several interesting patterns. The average call duration seems to correlate with customer satisfaction rates. Would you like me to analyze any specific aspect of the data?"
+        content: data.generatedText
       }]);
+    } catch (error) {
+      console.error('Error in chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get a response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
