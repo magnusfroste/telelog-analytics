@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +27,11 @@ interface TokenUsage {
   output_tokens: number;
 }
 
+interface ChartData {
+  name: string;
+  value: number;
+}
+
 const DEFAULT_SYSTEM_PROMPT = `You are an analytics assistant specialized in analyzing call center data. Focus on providing insights about:
 - Call durations and patterns
 - SMS usage and engagement
@@ -46,6 +52,20 @@ const Dashboard = () => {
   );
   const [isEditing, setIsEditing] = useState(false);
   const [tempPrompt, setTempPrompt] = useState(systemPrompt);
+
+  const { data: callLogs, isLoading, refetch } = useQuery({
+    queryKey: ["callLogs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("call_logs")
+        .select("*")
+        .order("created", { ascending: false })
+        .limit(1000);
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   useEffect(() => {
     checkUser();
@@ -205,7 +225,7 @@ const Dashboard = () => {
     return Object.entries(stats).map(([name, value]) => ({
       name,
       value,
-    }));
+    })) as ChartData[];
   };
 
   const getTaskCreatedStats = () => {
@@ -220,7 +240,7 @@ const Dashboard = () => {
     return Object.entries(stats).map(([name, value]) => ({
       name,
       value,
-    }));
+    })) as ChartData[];
   };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -244,7 +264,7 @@ const Dashboard = () => {
           onLogout={handleLogout}
         />
         <MetricsCards metrics={metrics} />
-        <CallsOverviewChart callLogs={callLogs} formatDate={formatDate} />
+        <CallsOverviewChart callLogs={callLogs || []} formatDate={formatDate} />
         <DistributionCharts 
           formClosingStats={formClosingStats}
           taskCreatedStats={taskCreatedStats}
@@ -306,7 +326,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <InsightsChatDrawer onTokenUsageUpdate={handleTokenUsageUpdate} systemPrompt={systemPrompt} />
+      <InsightsChatDrawer onTokenUsageUpdate={setTokenUsage} systemPrompt={systemPrompt} />
     </div>
   );
 };
