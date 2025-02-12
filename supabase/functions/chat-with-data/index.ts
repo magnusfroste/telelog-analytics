@@ -26,19 +26,63 @@ serve(async (req) => {
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch call logs
+    // Fetch call logs with only necessary fields
     const { data: callLogs, error: dbError } = await supabase
       .from('call_logs')
-      .select('*')
-      .limit(100); // Limit to recent records to stay within token limits
+      .select(`
+        call_time_phone,
+        call_time_video,
+        sms_sent,
+        sms_received,
+        e_identification,
+        form_closing,
+        type_of_task_created,
+        type_of_task_closed,
+        created
+      `)
+      .order('created', { ascending: false })
+      .limit(50); // Reduced limit to save tokens
 
     if (dbError) {
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // Add call logs data to the system message
-    const dataContext = `Here is the call center data to analyze (showing last 100 records):
-${JSON.stringify(callLogs, null, 2)}`;
+    // Create a more concise summary of the data
+    const summary = {
+      totalCalls: callLogs.length,
+      avgCallDuration: Math.round(
+        callLogs.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) / callLogs.length
+      ),
+      totalSMS: callLogs.reduce((acc, log) => acc + (log.sms_sent || 0) + (log.sms_received || 0), 0),
+      eIdRate: Math.round(
+        (callLogs.filter(log => log.e_identification).length / callLogs.length) * 100
+      ),
+      taskTypes: Object.entries(
+        callLogs.reduce((acc, log) => {
+          const type = log.type_of_task_created || 'Unknown';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      ),
+      closingMethods: Object.entries(
+        callLogs.reduce((acc, log) => {
+          const method = log.form_closing || 'Unknown';
+          acc[method] = (acc[method] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      )
+    };
+
+    // Add data summary to the system message
+    const dataContext = `Here is the call center data summary (based on last ${callLogs.length} records):
+- Average call duration: ${summary.avgCallDuration} seconds
+- Total SMS messages: ${summary.totalSMS}
+- E-identification rate: ${summary.eIdRate}%
+- Task types distribution: ${summary.taskTypes.map(([type, count]) => `${type}: ${count}`).join(', ')}
+- Closing methods: ${summary.closingMethods.map(([method, count]) => `${method}: ${count}`).join(', ')}
+
+Raw data sample (first 5 records):
+${JSON.stringify(callLogs.slice(0, 5), null, 2)}`;
 
     // Update the first system message to include the data
     const updatedMessages = messages.map((msg: any, index: number) => {
