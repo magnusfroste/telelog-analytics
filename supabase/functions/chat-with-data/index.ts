@@ -15,18 +15,18 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
+    if (!anthropicApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing required environment variables');
     }
 
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch call logs with only necessary fields
+    // Fetch call logs with more records since Claude can handle larger context
     const { data: callLogs, error: dbError } = await supabase
       .from('call_logs')
       .select(`
@@ -41,13 +41,13 @@ serve(async (req) => {
         created
       `)
       .order('created', { ascending: false })
-      .limit(50); // Reduced limit to save tokens
+      .limit(200); // Increased limit since Claude can handle more context
 
     if (dbError) {
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // Create a more concise summary of the data
+    // Create a more detailed summary of the data
     const summary = {
       totalCalls: callLogs.length,
       avgCallDuration: Math.round(
@@ -81,8 +81,8 @@ serve(async (req) => {
 - Task types distribution: ${summary.taskTypes.map(([type, count]) => `${type}: ${count}`).join(', ')}
 - Closing methods: ${summary.closingMethods.map(([method, count]) => `${method}: ${count}`).join(', ')}
 
-Raw data sample (first 5 records):
-${JSON.stringify(callLogs.slice(0, 5), null, 2)}`;
+Raw data sample (first 10 records):
+${JSON.stringify(callLogs.slice(0, 10), null, 2)}`;
 
     // Update the first system message to include the data
     const updatedMessages = messages.map((msg: any, index: number) => {
@@ -95,36 +95,39 @@ ${JSON.stringify(callLogs.slice(0, 5), null, 2)}`;
       return msg;
     });
 
-    console.log('Making request to OpenAI API...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('Making request to Anthropic API...');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
-        messages: updatedMessages,
-        temperature: 0.7,
-        max_tokens: 500,
+        model: 'claude-3-opus-20240229',
+        max_tokens: 1000,
+        messages: updatedMessages.map((msg: any) => ({
+          role: msg.role === 'system' ? 'user' : msg.role,
+          content: msg.content
+        })),
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      console.error('Anthropic API error:', errorText);
+      throw new Error(`Anthropic API error: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI API response:', data);
+    console.log('Anthropic API response:', data);
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    if (!data.content || !data.content[0] || !data.content[0].text) {
       console.error('Unexpected API response format:', data);
-      throw new Error('Invalid response format from OpenAI API');
+      throw new Error('Invalid response format from Anthropic API');
     }
 
-    const generatedText = data.choices[0].message.content;
+    const generatedText = data.content[0].text;
 
     return new Response(JSON.stringify({ generatedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
