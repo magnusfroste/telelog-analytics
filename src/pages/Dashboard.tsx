@@ -100,31 +100,10 @@ const Dashboard = () => {
   };
 
   const handleDeleteAllLogs = async () => {
-    if (!window.confirm('Are you sure you want to delete all logs? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('call_logs')
-        .delete()
-        .neq('id', 0);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "All logs have been deleted",
-      });
-
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Information",
+      description: "Not implemented in PoC",
+    });
   };
 
   const getMetrics = () => {
