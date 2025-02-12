@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,7 +85,7 @@ const Dashboard = () => {
         .from("call_logs")
         .select("*")
         .order("created", { ascending: false })
-        .limit(100);
+        .limit(1000); // Increased from 100 to 1000 rows
 
       if (error) throw error;
       return data;
