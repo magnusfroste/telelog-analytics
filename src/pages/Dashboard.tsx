@@ -1,24 +1,15 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsCards from "@/components/dashboard/MetricsCards";
 import CallsOverviewChart from "@/components/dashboard/CallsOverviewChart";
 import DistributionCharts from "@/components/dashboard/DistributionCharts";
 import InsightsChatDrawer from '@/components/InsightsChatDrawer';
-import { Settings } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import AnalysisSettings from "@/components/dashboard/AnalysisSettings";
+import DeveloperInfo from "@/components/dashboard/DeveloperInfo";
 
 interface TokenUsage {
   model: string;
@@ -39,14 +30,11 @@ const DEFAULT_SYSTEM_PROMPT = `You are a concise analytics assistant for call ce
 Structure your response with exactly three bullet points. Base your analysis only on the available data, highlighting the most impactful trends or opportunities for improvement.`;
 
 const Dashboard = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [systemPrompt, setSystemPrompt] = useState(
     localStorage.getItem('systemPrompt') || DEFAULT_SYSTEM_PROMPT
   );
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempPrompt, setTempPrompt] = useState(systemPrompt);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: callLogs, isLoading, refetch } = useQuery({
@@ -74,24 +62,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleSavePrompt = () => {
-    setSystemPrompt(tempPrompt);
-    localStorage.setItem('systemPrompt', tempPrompt);
-    setIsEditing(false);
+  const handleDeleteAllLogs = async () => {
     toast({
-      title: "Success",
-      description: "System prompt has been updated",
-    });
-  };
-
-  const handleResetPrompt = () => {
-    setTempPrompt(DEFAULT_SYSTEM_PROMPT);
-    setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
-    localStorage.setItem('systemPrompt', DEFAULT_SYSTEM_PROMPT);
-    setIsEditing(false);
-    toast({
-      title: "Success",
-      description: "System prompt has been reset to default",
+      title: "Information",
+      description: "Not implemented in PoC",
     });
   };
 
@@ -100,11 +74,9 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleDeleteAllLogs = async () => {
-    toast({
-      title: "Information",
-      description: "Not implemented in PoC",
-    });
+  const handleSystemPromptChange = (newPrompt: string) => {
+    setSystemPrompt(newPrompt);
+    localStorage.setItem('systemPrompt', newPrompt);
   };
 
   const getMetrics = () => {
@@ -156,7 +128,6 @@ const Dashboard = () => {
   };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
   const metrics = getMetrics();
   const formClosingStats = getFormClosingStats();
   const taskCreatedStats = getTaskCreatedStats();
@@ -183,54 +154,15 @@ const Dashboard = () => {
           colors={COLORS}
         />
         
-        <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <SheetContent className="w-[90vw] sm:w-[540px]">
-            <SheetHeader>
-              <SheetTitle>Analysis Settings</SheetTitle>
-              <SheetDescription>
-                Customize how the AI analyzes your call center data
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">System Prompt</label>
-                <Textarea
-                  value={tempPrompt}
-                  onChange={(e) => {
-                    setTempPrompt(e.target.value);
-                    setIsEditing(true);
-                  }}
-                  className="h-[300px]"
-                  placeholder="Enter system prompt..."
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleResetPrompt}
-                >
-                  Reset to Default
-                </Button>
-                <Button
-                  onClick={handleSavePrompt}
-                  disabled={!isEditing}
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+        <AnalysisSettings 
+          isOpen={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+          defaultSystemPrompt={DEFAULT_SYSTEM_PROMPT}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={handleSystemPromptChange}
+        />
         
-        <div className="bg-white/50 backdrop-blur-sm border border-gray-200 rounded-lg p-4 mt-8">
-          <h3 className="text-sm font-semibold mb-2 text-gray-700">Developer Information</h3>
-          <div className="space-y-1 text-sm text-gray-600">
-            <p>Model: {tokenUsage?.model || 'No analysis performed yet'}</p>
-            <p>Input Tokens: {tokenUsage?.input_tokens || 0}</p>
-            <p>Output Tokens: {tokenUsage?.output_tokens || 0}</p>
-            <p>Total Tokens: {tokenUsage ? tokenUsage.input_tokens + tokenUsage.output_tokens : 0}</p>
-          </div>
-        </div>
+        <DeveloperInfo tokenUsage={tokenUsage} />
       </div>
       <InsightsChatDrawer onTokenUsageUpdate={setTokenUsage} systemPrompt={systemPrompt} />
     </div>
