@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -32,16 +31,12 @@ interface ChartData {
   value: number;
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are an analytics assistant specialized in analyzing call center data. Focus on providing insights about:
-- Call durations and patterns
-- SMS usage and engagement
-- Digital identity verification rates
-- Task types and closing methods
-- Peak times and workload distribution
-- Customer service efficiency metrics
+const DEFAULT_SYSTEM_PROMPT = `You are a concise analytics assistant for call center data. Focus on providing exactly THREE key insights or recommendations. Your responses should be:
+- Brief and data-driven
+- Backed by specific numbers and percentages
+- Focused on actionable improvements
 
-When discussing metrics, always use concrete numbers and percentages. Structure your responses clearly and be concise.
-Base your analysis only on the available data and highlight any notable trends or anomalies.`;
+Structure your response with exactly three bullet points. Base your analysis only on the available data, highlighting the most impactful trends or opportunities for improvement.`;
 
 const Dashboard = () => {
   const { toast } = useToast();
