@@ -43,6 +43,7 @@ interface AggregatedData {
   created: string;
   call_time_phone: number;
   total_calls: number;
+  form_closings: Record<string, number>;
 }
 
 interface FormClosingStat {
@@ -134,11 +135,17 @@ const Dashboard = () => {
           acc[day] = {
             created: day,
             call_time_phone: 0,
-            total_calls: 0
+            total_calls: 0,
+            form_closings: {}
           };
         }
         acc[day].call_time_phone += call.call_time_phone || 0;
         acc[day].total_calls += 1;
+        
+        // Track form closings
+        const formClosing = call.form_closing || 'Not Specified';
+        acc[day].form_closings[formClosing] = (acc[day].form_closings[formClosing] || 0) + 1;
+        
         return acc;
       }, {});
 
@@ -228,13 +235,15 @@ const Dashboard = () => {
   const getFormClosingStats = (): FormClosingStat[] => {
     if (!callLogs) return [];
     
-    const stats = callLogs.reduce<Record<string, number>>((acc, day) => {
-      const category = day.form_closing || 'Not Specified';
-      acc[category] = (acc[category] || 0) + day.total_calls;
+    // Combine form closings from all days
+    const combinedStats = callLogs.reduce((acc, day) => {
+      Object.entries(day.form_closings).forEach(([category, count]) => {
+        acc[category] = (acc[category] || 0) + count;
+      });
       return acc;
-    }, {});
+    }, {} as Record<string, number>);
 
-    return Object.entries(stats).map(([name, value]) => ({
+    return Object.entries(combinedStats).map(([name, value]) => ({
       name,
       value,
     }));
