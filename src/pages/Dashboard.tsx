@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,23 @@ import {
   Bar,
 } from "recharts";
 import { startOfDay, endOfDay, subDays, addDays, startOfMonth, endOfMonth, format } from "date-fns";
+
+interface CallLog {
+  created: string;
+  call_time_phone: number;
+  e_identification: boolean;
+}
+
+interface DailyStats {
+  created: string;
+  call_time_phone: number;
+  total_calls: number;
+}
+
+interface MonthlyStats {
+  created: string;
+  total_calls: number;
+}
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -172,23 +190,25 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      const aggregatedData = data.reduce((acc, call) => {
+      const typedData = data as CallLog[];
+      const aggregatedData: Record<string, DailyStats> = {};
+
+      typedData.forEach((call) => {
         const day = startOfDay(new Date(call.created)).toISOString();
-        if (!acc[day]) {
-          acc[day] = {
+        if (!aggregatedData[day]) {
+          aggregatedData[day] = {
             created: day,
             call_time_phone: 0,
             total_calls: 0
           };
         }
-        acc[day].call_time_phone += call.call_time_phone || 0;
-        acc[day].total_calls += 1;
-        return acc;
-      }, {});
+        aggregatedData[day].call_time_phone += call.call_time_phone || 0;
+        aggregatedData[day].total_calls += 1;
+      });
 
       return Object.values(aggregatedData).map(day => ({
         ...day,
-        call_time_phone: Math.round(day.call_time_phone / day.total_calls)
+        call_time_phone: day.total_calls > 0 ? Math.round(day.call_time_phone / day.total_calls) : 0
       }));
     },
   });
@@ -208,17 +228,19 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      const aggregatedData = data.reduce((acc, call) => {
+      const typedData = data as CallLog[];
+      const aggregatedData: Record<string, MonthlyStats> = {};
+
+      typedData.forEach((call) => {
         const day = startOfDay(new Date(call.created)).toISOString();
-        if (!acc[day]) {
-          acc[day] = {
+        if (!aggregatedData[day]) {
+          aggregatedData[day] = {
             created: day,
             total_calls: 0
           };
         }
-        acc[day].total_calls += 1;
-        return acc;
-      }, {});
+        aggregatedData[day].total_calls += 1;
+      });
 
       return Object.values(aggregatedData);
     },
@@ -227,19 +249,20 @@ const Dashboard = () => {
   const getMetrics = () => {
     if (!weeklyCallLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
     
-    const totalWithEid = weeklyCallLogs.filter(log => log.e_identification).length;
+    const total = weeklyCallLogs.reduce((acc, day) => acc + day.total_calls, 0);
+    const avgDuration = weeklyCallLogs.length > 0
+      ? Math.round(weeklyCallLogs.reduce((acc, day) => acc + day.call_time_phone, 0) / weeklyCallLogs.length)
+      : 0;
     
     return {
-      total: weeklyCallLogs.reduce((acc, day) => acc + day.total_calls, 0),
-      avgDuration: Math.round(
-        weeklyCallLogs.reduce((acc, day) => acc + day.call_time_phone, 0) / weeklyCallLogs.length
-      ),
+      total,
+      avgDuration,
       totalSMS: 0,
       eIdRate: 0
     };
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
     return format(new Date(dateStr), 'MMM dd');
   };
@@ -253,7 +276,7 @@ const Dashboard = () => {
       const formClosing = log.form_closing || 'Not Specified';
       acc[formClosing] = (acc[formClosing] || 0) + 1;
       return acc;
-    }, {});
+    }, {} as Record<string, number>);
 
     return Object.entries(stats).map(([name, value]) => ({
       name,
@@ -261,9 +284,9 @@ const Dashboard = () => {
     }));
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
   const formClosingStats = getFormClosingStats();
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
