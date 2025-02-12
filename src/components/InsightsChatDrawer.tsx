@@ -23,6 +23,17 @@ interface Message {
   content: string;
 }
 
+const systemPrompt = `You are an analytics assistant specialized in analyzing call center data. Focus on providing insights about:
+- Call durations and patterns
+- SMS usage and engagement
+- Digital identity verification rates
+- Task types and closing methods
+- Peak times and workload distribution
+- Customer service efficiency metrics
+
+When discussing metrics, always use concrete numbers and percentages. Structure your responses clearly and be concise.
+Base your analysis only on the available data and highlight any notable trends or anomalies.`;
+
 const InsightsChatDrawer = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,10 +52,7 @@ const InsightsChatDrawer = () => {
       const { data, error } = await supabase.functions.invoke('chat-with-data', {
         body: {
           messages: [
-            {
-              role: 'system',
-              content: 'You are an analytics assistant helping users understand their call center data. Be concise and focused on providing actionable insights. When discussing metrics use concrete numbers and percentages where possible.'
-            },
+            { role: 'system', content: systemPrompt },
             ...messages,
             { role: 'user', content: userMessage }
           ]
@@ -133,7 +141,7 @@ const InsightsChatDrawer = () => {
             className="flex items-center gap-2"
           >
             <Input
-              placeholder="Ask about your analytics data..."
+              placeholder="Ask about call patterns, metrics, or trends..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               className="flex-1"
