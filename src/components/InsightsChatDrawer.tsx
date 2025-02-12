@@ -135,7 +135,7 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
       </DrawerTrigger>
       <DrawerContent className="h-[85vh] rounded-t-[20px]">
         <DrawerHeader className="border-b border-gray-100">
-          <DrawerTitle className="text-2xl font-medium">Analytics Insights</DrawerTitle>
+          <DrawerTitle className="text-2xl font-medium">Hi, I'm Call-e...</DrawerTitle>
           <DrawerDescription className="text-gray-500">
             Ask questions about your call center data and get AI-powered insights
           </DrawerDescription>
