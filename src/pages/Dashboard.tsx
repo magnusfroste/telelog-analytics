@@ -1,21 +1,16 @@
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import {
   PhoneCall,
   MessageSquare,
   Clock,
-  Users,
-  BarChart3,
-  Calendar,
-  Upload,
-  LogOut,
   Shield,
   Trash2,
+  LogOut,
+  Upload,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,11 +26,15 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
 } from "recharts";
+import { startOfDay, endOfDay, subDays, addDays, startOfMonth, endOfMonth, format } from "date-fns";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     checkUser();
@@ -158,23 +157,94 @@ const Dashboard = () => {
     event.target.value = '';
   };
 
+  const { data: weeklyCallLogs, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
+    queryKey: ["weeklyCallLogs", currentDate],
+    queryFn: async () => {
+      const startDate = startOfDay(subDays(currentDate, 6));
+      const endDate = endOfDay(currentDate);
+
+      const { data, error } = await supabase
+        .from("call_logs")
+        .select("*")
+        .gte('created', startDate.toISOString())
+        .lte('created', endDate.toISOString())
+        .order("created", { ascending: true });
+
+      if (error) throw error;
+
+      const aggregatedData = data.reduce((acc, call) => {
+        const day = startOfDay(new Date(call.created)).toISOString();
+        if (!acc[day]) {
+          acc[day] = {
+            created: day,
+            call_time_phone: 0,
+            total_calls: 0
+          };
+        }
+        acc[day].call_time_phone += call.call_time_phone || 0;
+        acc[day].total_calls += 1;
+        return acc;
+      }, {});
+
+      return Object.values(aggregatedData).map(day => ({
+        ...day,
+        call_time_phone: Math.round(day.call_time_phone / day.total_calls)
+      }));
+    },
+  });
+
+  const { data: monthlyCallLogs, isLoading: monthlyLoading } = useQuery({
+    queryKey: ["monthlyCallLogs", currentDate],
+    queryFn: async () => {
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+
+      const { data, error } = await supabase
+        .from("call_logs")
+        .select("*")
+        .gte('created', monthStart.toISOString())
+        .lte('created', monthEnd.toISOString())
+        .order("created", { ascending: true });
+
+      if (error) throw error;
+
+      const aggregatedData = data.reduce((acc, call) => {
+        const day = startOfDay(new Date(call.created)).toISOString();
+        if (!acc[day]) {
+          acc[day] = {
+            created: day,
+            total_calls: 0
+          };
+        }
+        acc[day].total_calls += 1;
+        return acc;
+      }, {});
+
+      return Object.values(aggregatedData);
+    },
+  });
+
   const getMetrics = () => {
-    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
+    if (!weeklyCallLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
     
-    const totalWithEid = callLogs.filter(log => log.e_identification).length;
+    const totalWithEid = weeklyCallLogs.filter(log => log.e_identification).length;
     
     return {
-      total: callLogs.length,
+      total: weeklyCallLogs.reduce((acc, day) => acc + day.total_calls, 0),
       avgDuration: Math.round(
-        callLogs.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) /
-          callLogs.length
+        weeklyCallLogs.reduce((acc, day) => acc + day.call_time_phone, 0) / weeklyCallLogs.length
       ),
-      totalSMS:
-        callLogs.reduce((acc, log) => acc + (log.sms_sent || 0), 0) +
-        callLogs.reduce((acc, log) => acc + (log.sms_received || 0), 0),
-      eIdRate: Math.round((totalWithEid / callLogs.length) * 100)
+      totalSMS: 0,
+      eIdRate: 0
     };
   };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return format(new Date(dateStr), 'MMM dd');
+  };
+
+  const metrics = getMetrics();
 
   const getFormClosingStats = () => {
     if (!callLogs) return [];
@@ -193,14 +263,7 @@ const Dashboard = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  const metrics = getMetrics();
   const formClosingStats = getFormClosingStats();
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString();
-  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -295,60 +358,70 @@ const Dashboard = () => {
         </div>
 
         <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle>Weekly Call Duration</CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="bg-gray-100/50 p-1">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-white">Overview</TabsTrigger>
-                <TabsTrigger value="details" className="data-[state=active]:bg-white">Details</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="space-y-6">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={callLogs || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="created" 
-                        tickFormatter={formatDate}
-                        angle={-45}
-                        textAnchor="end"
-                        height={70}
-                      />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Line type="monotone" dataKey="call_time_phone" stroke="#8884d8" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="details">
-                <ScrollArea className="h-[400px] rounded-md border p-4">
-                  <div className="space-y-6">
-                    {callLogs?.map((log, index) => (
-                      <Card key={index} className="bg-white/30">
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">Call Duration</p>
-                              <p className="text-lg font-semibold">{log.call_time_phone}s</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">SMS Sent</p>
-                              <p className="text-lg font-semibold">{log.sms_sent}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">SMS Received</p>
-                              <p className="text-lg font-semibold">{log.sms_received}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={weeklyCallLogs || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="created" 
+                    tickFormatter={formatDate}
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={formatDate}
+                    formatter={(value, name) => {
+                      if (name === 'call_time_phone') return [`${value}s`, 'Avg. Duration'];
+                      return [value, name];
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="call_time_phone" 
+                    stroke="#8884d8" 
+                    name="Average Duration"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle>Monthly Call Volume</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyCallLogs || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="created" 
+                    tickFormatter={formatDate}
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={formatDate}
+                    formatter={(value) => [`${value} calls`, 'Total Calls']}
+                  />
+                  <Bar 
+                    dataKey="total_calls" 
+                    fill="#82ca9d" 
+                    name="Total Calls"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
