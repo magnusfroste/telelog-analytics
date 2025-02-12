@@ -55,7 +55,7 @@ const Index = () => {
         {
           method: 'POST',
           headers: {
-            'apikey': supabase.supabaseKey,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uZ21zcm9xdmthdXJsZWRnZnZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg0NzQzOTIsImV4cCI6MjA0NDA1MDM5Mn0.DknANjVk_4WXMlgq-OY9KIFVwyE3W9JHeDdcjlsF6Gg',
           },
           body: formData,
         }
