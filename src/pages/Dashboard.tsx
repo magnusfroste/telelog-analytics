@@ -169,7 +169,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="flex-1 space-y-6 p-8">
+      <div className="flex-1 space-y-4 md:space-y-6 p-4 md:p-8">
         <DashboardHeader 
           onDeleteLogs={handleDeleteAllLogs}
           onLogout={handleLogout}
@@ -184,7 +184,7 @@ const Dashboard = () => {
         />
         
         <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <SheetContent className="w-[600px] sm:w-[540px]">
+          <SheetContent className="w-[90vw] sm:w-[540px]">
             <SheetHeader>
               <SheetTitle>Analysis Settings</SheetTitle>
               <SheetDescription>
