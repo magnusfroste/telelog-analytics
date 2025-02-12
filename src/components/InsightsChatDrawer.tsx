@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -46,6 +45,34 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const splitMessage = (content: string): string[] => {
+    // Split on sentences, keeping the punctuation
+    const sentences = content.match(/[^.!?]+[.!?]+/g) || [content];
+    
+    // Group sentences into reasonable chunks (2-3 sentences per chunk)
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    sentences.forEach((sentence, index) => {
+      if (currentChunk.length + sentence.length > 200 || index === sentences.length - 1) {
+        if (currentChunk) {
+          chunks.push(currentChunk.trim());
+          currentChunk = sentence;
+        } else {
+          chunks.push(sentence.trim());
+        }
+      } else {
+        currentChunk += sentence;
+      }
+    });
+    
+    if (currentChunk) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks;
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -67,12 +94,15 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
 
       if (error) throw error;
 
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.generatedText
-      }]);
+      // Split the response into multiple messages
+      const chunks = splitMessage(data.generatedText);
+      chunks.forEach((chunk) => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: chunk
+        }]);
+      });
 
-      // Update token usage in the parent component
       if (data.usage) {
         onTokenUsageUpdate(data.usage);
       }
@@ -98,59 +128,59 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-6 right-6 h-20 w-20 rounded-full shadow-lg bg-purple-600 hover:bg-purple-700 border-0"
+          className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border-0"
         >
-          <MessageCircle className="h-12 w-12 text-white" />
+          <MessageCircle className="h-8 w-8 text-white" />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[80vh]">
-        <DrawerHeader>
-          <DrawerTitle>Analytics Insights</DrawerTitle>
-          <DrawerDescription>
+      <DrawerContent className="h-[85vh] rounded-t-[20px]">
+        <DrawerHeader className="border-b border-gray-100">
+          <DrawerTitle className="text-2xl font-medium">Analytics Insights</DrawerTitle>
+          <DrawerDescription className="text-gray-500">
             Ask questions about your call center data and get AI-powered insights
           </DrawerDescription>
         </DrawerHeader>
         
         {messages.length === 0 && (
-          <div className="px-4">
+          <div className="px-6 py-4">
             <div className="mb-4 text-sm font-medium text-gray-500">Suggested questions:</div>
             <div className="space-y-2">
               {SUGGESTED_QUESTIONS.map((question, index) => (
                 <Button
                   key={index}
                   variant="ghost"
-                  className="w-full justify-start text-left text-sm h-auto py-2 px-3"
+                  className="w-full justify-start text-left text-sm h-auto py-3 px-4 rounded-xl hover:bg-blue-50"
                   onClick={() => handleSuggestedQuestion(question)}
                 >
-                  <Lightbulb className="h-4 w-4 mr-2 flex-shrink-0 text-purple-500" />
-                  <span className="text-gray-600">{question}</span>
+                  <Lightbulb className="h-4 w-4 mr-3 flex-shrink-0 text-blue-500" />
+                  <span className="text-gray-700">{question}</span>
                 </Button>
               ))}
             </div>
           </div>
         )}
 
-        <ScrollArea className="flex-1 p-4 h-[calc(80vh-180px)]">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 px-6 py-4 h-[calc(85vh-180px)]">
+          <div className="space-y-6">
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={cn(
-                  "flex items-start gap-3 text-sm",
+                  "flex items-start gap-3",
                   message.role === 'assistant' ? "flex-row" : "flex-row-reverse"
                 )}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <Bot className="h-5 w-5 text-white" />
                   </div>
                 )}
                 <div
                   className={cn(
-                    "rounded-lg px-4 py-2 max-w-[80%]",
+                    "rounded-2xl px-4 py-3 max-w-[85%] text-[15px] leading-relaxed shadow-sm",
                     message.role === 'assistant' 
-                      ? "bg-muted" 
-                      : "bg-primary text-primary-foreground"
+                      ? "bg-gray-100 text-gray-800" 
+                      : "bg-blue-500 text-white"
                   )}
                 >
                   {message.content}
@@ -158,31 +188,36 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
               </div>
             ))}
             {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-                  <Bot className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center animate-pulse">
+                  <Bot className="h-5 w-5 text-white" />
                 </div>
-                <div>Analyzing data...</div>
+                <div className="text-[15px] text-gray-500">Analyzing data...</div>
               </div>
             )}
           </div>
         </ScrollArea>
-        <DrawerFooter className="border-t pt-4">
+        <DrawerFooter className="border-t border-gray-100 py-4 px-6">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3"
           >
             <Input
               placeholder="Ask about call patterns, metrics, or trends..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1"
+              className="flex-1 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
-            <Button type="submit" size="icon" disabled={isLoading}>
-              <Send className="h-4 w-4" />
+            <Button 
+              type="submit" 
+              size="icon"
+              disabled={isLoading}
+              className="rounded-xl bg-blue-500 hover:bg-blue-600 h-10 w-10"
+            >
+              <Send className="h-5 w-5" />
             </Button>
           </form>
         </DrawerFooter>
