@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +80,48 @@ const Dashboard = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({
+        title: "Error",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // Call the Supabase Edge Function to process the CSV
+      const { data, error } = await supabase.functions.invoke('process-csv', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+
+      // Refresh the data
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      // Reset the file input
+      event.target.value = '';
     }
   };
 
