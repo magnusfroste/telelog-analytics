@@ -1,5 +1,8 @@
 
 project_id = "mngmsroqvkaurledgfvn"
 
+[functions.chat-with-data]
+verify_jwt = false
+
 [functions.process-csv]
 verify_jwt = true
