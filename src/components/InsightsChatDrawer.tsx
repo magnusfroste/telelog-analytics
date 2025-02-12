@@ -83,9 +83,9 @@ const InsightsChatDrawer = () => {
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-purple-600 hover:bg-purple-700 border-0"
+          className="fixed bottom-6 right-6 h-20 w-20 rounded-full shadow-lg bg-purple-600 hover:bg-purple-700 border-0"
         >
-          <MessageCircle className="h-8 w-8 text-white" />
+          <MessageCircle className="h-12 w-12 text-white" />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[80vh]">
