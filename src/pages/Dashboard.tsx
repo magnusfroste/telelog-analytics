@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
@@ -9,9 +10,16 @@ import CallsOverviewChart from "@/components/dashboard/CallsOverviewChart";
 import DistributionCharts from "@/components/dashboard/DistributionCharts";
 import InsightsChatDrawer from '@/components/InsightsChatDrawer';
 
+interface TokenUsage {
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -70,6 +78,10 @@ const Dashboard = () => {
       return data;
     },
   });
+
+  const handleTokenUsageUpdate = (usage: TokenUsage) => {
+    setTokenUsage(usage);
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -209,8 +221,19 @@ const Dashboard = () => {
           taskCreatedStats={taskCreatedStats}
           colors={COLORS}
         />
+        
+        {/* Developer Section */}
+        <div className="bg-white/50 backdrop-blur-sm border border-gray-200 rounded-lg p-4 mt-8">
+          <h3 className="text-sm font-semibold mb-2 text-gray-700">Developer Information</h3>
+          <div className="space-y-1 text-sm text-gray-600">
+            <p>Model: {tokenUsage?.model || 'No analysis performed yet'}</p>
+            <p>Input Tokens: {tokenUsage?.input_tokens || 0}</p>
+            <p>Output Tokens: {tokenUsage?.output_tokens || 0}</p>
+            <p>Total Tokens: {tokenUsage ? tokenUsage.input_tokens + tokenUsage.output_tokens : 0}</p>
+          </div>
+        </div>
       </div>
-      <InsightsChatDrawer />
+      <InsightsChatDrawer onTokenUsageUpdate={handleTokenUsageUpdate} />
     </div>
   );
 };

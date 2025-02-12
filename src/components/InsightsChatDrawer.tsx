@@ -23,6 +23,16 @@ interface Message {
   content: string;
 }
 
+interface TokenUsage {
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+interface InsightsChatDrawerProps {
+  onTokenUsageUpdate: (usage: TokenUsage) => void;
+}
+
 const systemPrompt = `You are an analytics assistant specialized in analyzing call center data. Focus on providing insights about:
 - Call durations and patterns
 - SMS usage and engagement
@@ -34,7 +44,7 @@ const systemPrompt = `You are an analytics assistant specialized in analyzing ca
 When discussing metrics, always use concrete numbers and percentages. Structure your responses clearly and be concise.
 Base your analysis only on the available data and highlight any notable trends or anomalies.`;
 
-const InsightsChatDrawer = () => {
+const InsightsChatDrawer = ({ onTokenUsageUpdate }: InsightsChatDrawerProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -65,6 +75,11 @@ const InsightsChatDrawer = () => {
         role: 'assistant',
         content: data.generatedText
       }]);
+
+      // Update token usage in the parent component
+      if (data.usage) {
+        onTokenUsageUpdate(data.usage);
+      }
     } catch (error) {
       console.error('Error in chat:', error);
       toast({

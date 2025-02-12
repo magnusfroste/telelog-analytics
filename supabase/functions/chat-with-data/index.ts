@@ -131,7 +131,14 @@ Full dataset contains ${callLogs.length} records for comprehensive analysis.`;
 
     const generatedText = data.content[0].text;
 
-    return new Response(JSON.stringify({ generatedText }), {
+    return new Response(JSON.stringify({ 
+      generatedText,
+      usage: {
+        model: 'claude-3-opus-20240229',
+        input_tokens: data.usage?.input_tokens || 0,
+        output_tokens: data.usage?.output_tokens || 0
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
