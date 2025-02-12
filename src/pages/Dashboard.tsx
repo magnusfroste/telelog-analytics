@@ -66,31 +66,51 @@ const Dashboard = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session found');
+      const text = await file.text();
+      const rows = text.split('\n');
+      const headers = rows[0].split(',');
+      const records = rows.slice(1).map(row => {
+        const values = row.split(',');
+        return {
+          teleq_id: values[0] ? parseInt(values[0]) : null,
+          unique_task_id: values[1] || null,
+          phone_no: values[2] || null,
+          number_pres: values[3] || null,
+          created: values[4] || null,
+          scheduled_time: values[5] || null,
+          closed: values[6] || null,
+          form_closing: values[7] || null,
+          first_contact: values[8] || null,
+          created_on: values[9] || null,
+          created_by: values[10] || null,
+          category: values[11] || null,
+          first_user_id: values[12] || null,
+          last_user_id: values[13] || null,
+          call_time_phone: values[14] ? parseInt(values[14]) : null,
+          call_time_video: values[15] ? parseInt(values[15]) : null,
+          customer_number: values[16] || null,
+          sms_received: values[17] ? parseInt(values[17]) : null,
+          sms_sent: values[18] ? parseInt(values[18]) : null,
+          user_time: values[19] || null,
+          post_tag_code: values[20] || null,
+          type_of_task_closed: values[21] || null,
+          recordings: values[22] ? parseInt(values[22]) : null,
+          first_offered_time: values[23] || null,
+          type_of_task_created: values[24] || null,
+          e_identification: values[25] === 'true'
+        };
+      }).filter(record => record.teleq_id); // Filter out empty rows
 
-      const response = await fetch(
-        'https://mngmsroqvkaurledgfvn.supabase.co/functions/v1/process-csv',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        }
-      );
+      const { error } = await supabase
+        .from('call_logs')
+        .insert(records);
 
-      const result = await response.json();
-
-      if (!response.ok) throw new Error(result.error);
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: result.message,
+        description: `Successfully imported ${records.length} records`,
       });
 
       refetch();
