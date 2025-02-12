@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,9 +32,13 @@ import {
 import { startOfDay, endOfDay, subDays, addDays, startOfMonth, endOfMonth, format } from "date-fns";
 
 interface CallLog {
+  id: number;
   created: string;
-  call_time_phone: number;
-  e_identification: boolean;
+  call_time_phone: number | null;
+  e_identification: boolean | null;
+  form_closing: string | null;
+  sms_sent: number | null;
+  sms_received: number | null;
 }
 
 interface DailyStats {
@@ -105,75 +108,12 @@ const Dashboard = () => {
         .from("call_logs")
         .select("*")
         .order("created", { ascending: false })
-        .limit(1000); // Increased from 100 to 1000 rows
+        .limit(1000);
 
       if (error) throw error;
-      return data;
+      return data as CallLog[];
     },
   });
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const rows = text.split('\n');
-      const headers = rows[0].split(',');
-      const records = rows.slice(1).map(row => {
-        const values = row.split(',');
-        return {
-          teleq_id: values[0] ? parseInt(values[0]) : null,
-          unique_task_id: values[1] || null,
-          phone_no: values[2] || null,
-          number_pres: values[3] || null,
-          created: values[4] || null,
-          scheduled_time: values[5] || null,
-          closed: values[6] || null,
-          form_closing: values[7] || null,
-          first_contact: values[8] || null,
-          created_on: values[9] || null,
-          created_by: values[10] || null,
-          category: values[11] || null,
-          first_user_id: values[12] || null,
-          last_user_id: values[13] || null,
-          call_time_phone: values[14] ? parseInt(values[14]) : null,
-          call_time_video: values[15] ? parseInt(values[15]) : null,
-          customer_number: values[16] || null,
-          sms_received: values[17] ? parseInt(values[17]) : null,
-          sms_sent: values[18] ? parseInt(values[18]) : null,
-          user_time: values[19] || null,
-          post_tag_code: values[20] || null,
-          type_of_task_closed: values[21] || null,
-          recordings: values[22] ? parseInt(values[22]) : null,
-          first_offered_time: values[23] || null,
-          type_of_task_created: values[24] || null,
-          e_identification: values[25] === 'true'
-        };
-      }).filter(record => record.teleq_id); // Filter out empty rows
-
-      const { error } = await supabase
-        .from('call_logs')
-        .insert(records);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Successfully imported ${records.length} records`,
-      });
-
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-
-    event.target.value = '';
-  };
 
   const { data: weeklyCallLogs, isLoading: weeklyLoading, refetch: refetchWeekly } = useQuery({
     queryKey: ["weeklyCallLogs", currentDate],
@@ -202,7 +142,9 @@ const Dashboard = () => {
             total_calls: 0
           };
         }
-        aggregatedData[day].call_time_phone += call.call_time_phone || 0;
+        if (call.call_time_phone) {
+          aggregatedData[day].call_time_phone += call.call_time_phone;
+        }
         aggregatedData[day].total_calls += 1;
       });
 
@@ -247,18 +189,29 @@ const Dashboard = () => {
   });
 
   const getMetrics = () => {
-    if (!weeklyCallLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
+    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
     
-    const total = weeklyCallLogs.reduce((acc, day) => acc + day.total_calls, 0);
-    const avgDuration = weeklyCallLogs.length > 0
-      ? Math.round(weeklyCallLogs.reduce((acc, day) => acc + day.call_time_phone, 0) / weeklyCallLogs.length)
+    const total = callLogs.length;
+    const callsWithDuration = callLogs.filter(log => log.call_time_phone !== null);
+    const avgDuration = callsWithDuration.length > 0
+      ? Math.round(
+          callsWithDuration.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) / 
+          callsWithDuration.length
+        )
       : 0;
+    
+    const totalSMS = callLogs.reduce((acc, log) => 
+      acc + (log.sms_sent || 0) + (log.sms_received || 0), 0
+    );
+    
+    const callsWithEid = callLogs.filter(log => log.e_identification).length;
+    const eIdRate = total > 0 ? Math.round((callsWithEid / total) * 100) : 0;
     
     return {
       total,
       avgDuration,
-      totalSMS: 0,
-      eIdRate: 0
+      totalSMS,
+      eIdRate
     };
   };
 
