@@ -14,6 +14,7 @@ import {
   Upload,
   LogOut,
   Shield,
+  Trash2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,34 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
+  };
+
+  const handleDeleteAllLogs = async () => {
+    if (!window.confirm('Are you sure you want to delete all logs? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('call_logs')
+        .delete()
+        .neq('id', 0); // This deletes all records
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "All logs have been deleted",
+      });
+
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const { data: callLogs, isLoading, refetch } = useQuery({
@@ -177,6 +206,14 @@ const Dashboard = () => {
                 </span>
               </Button>
             </label>
+            <Button 
+              variant="outline" 
+              onClick={handleDeleteAllLogs}
+              className="bg-white/50 backdrop-blur-sm border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-300"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete All Logs
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleLogout}
