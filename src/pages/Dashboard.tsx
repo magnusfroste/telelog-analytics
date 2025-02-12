@@ -1,21 +1,16 @@
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import {
   PhoneCall,
   MessageSquare,
   Clock,
-  Users,
-  BarChart3,
-  Calendar,
-  Upload,
-  LogOut,
   Shield,
   Trash2,
+  LogOut,
+  Upload,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,10 +27,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { startOfDay, endOfDay, subDays, addDays } from "date-fns";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     checkUser();
@@ -82,16 +79,40 @@ const Dashboard = () => {
   };
 
   const { data: callLogs, isLoading, refetch } = useQuery({
-    queryKey: ["callLogs"],
+    queryKey: ["callLogs", currentDate],
     queryFn: async () => {
+      const startDate = startOfDay(subDays(currentDate, 6)); // Start of 7 days ago
+      const endDate = endOfDay(currentDate); // End of current day
+
       const { data, error } = await supabase
         .from("call_logs")
         .select("*")
-        .order("created", { ascending: false })
-        .limit(1000); // Increased from 100 to 1000 rows
+        .gte('created', startDate.toISOString())
+        .lte('created', endDate.toISOString())
+        .order("created", { ascending: true });
 
       if (error) throw error;
-      return data;
+
+      // Aggregate data by day
+      const aggregatedData = data.reduce((acc, call) => {
+        const day = startOfDay(new Date(call.created)).toISOString();
+        if (!acc[day]) {
+          acc[day] = {
+            created: day,
+            call_time_phone: 0,
+            total_calls: 0
+          };
+        }
+        acc[day].call_time_phone += call.call_time_phone || 0;
+        acc[day].total_calls += 1;
+        return acc;
+      }, {});
+
+      // Convert to array and calculate average call duration
+      return Object.values(aggregatedData).map(day => ({
+        ...day,
+        call_time_phone: Math.round(day.call_time_phone / day.total_calls) // Average duration per call
+      }));
     },
   });
 
@@ -158,44 +179,6 @@ const Dashboard = () => {
     event.target.value = '';
   };
 
-  const getMetrics = () => {
-    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
-    
-    const totalWithEid = callLogs.filter(log => log.e_identification).length;
-    
-    return {
-      total: callLogs.length,
-      avgDuration: Math.round(
-        callLogs.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) /
-          callLogs.length
-      ),
-      totalSMS:
-        callLogs.reduce((acc, log) => acc + (log.sms_sent || 0), 0) +
-        callLogs.reduce((acc, log) => acc + (log.sms_received || 0), 0),
-      eIdRate: Math.round((totalWithEid / callLogs.length) * 100)
-    };
-  };
-
-  const getFormClosingStats = () => {
-    if (!callLogs) return [];
-    
-    const stats = callLogs.reduce((acc, log) => {
-      const formClosing = log.form_closing || 'Not Specified';
-      acc[formClosing] = (acc[formClosing] || 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(stats).map(([name, value]) => ({
-      name,
-      value,
-    }));
-  };
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-  const metrics = getMetrics();
-  const formClosingStats = getFormClosingStats();
-
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -247,108 +230,58 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
-              <PhoneCall className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.total}</div>
-              <p className="text-xs text-gray-500">Processed calls</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Duration</CardTitle>
-              <Clock className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.avgDuration}s</div>
-              <p className="text-xs text-gray-500">Per call</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total SMS</CardTitle>
-              <MessageSquare className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalSMS}</div>
-              <p className="text-xs text-gray-500">Messages exchanged</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200 relative overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Digital Identity Rate</CardTitle>
-              <Shield className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.eIdRate}%</div>
-              <p className="text-xs text-gray-500">Verified calls</p>
-            </CardContent>
-            <div 
-              className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500" 
-              style={{ width: `${metrics.eIdRate}%` }}
-            />
-          </Card>
-        </div>
-
         <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
           <CardContent className="p-6">
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="bg-gray-100/50 p-1">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-white">Overview</TabsTrigger>
-                <TabsTrigger value="details" className="data-[state=active]:bg-white">Details</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="space-y-6">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={callLogs || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="created" 
-                        tickFormatter={formatDate}
-                        angle={-45}
-                        textAnchor="end"
-                        height={70}
-                      />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Line type="monotone" dataKey="call_time_phone" stroke="#8884d8" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="details">
-                <ScrollArea className="h-[400px] rounded-md border p-4">
-                  <div className="space-y-6">
-                    {callLogs?.map((log, index) => (
-                      <Card key={index} className="bg-white/30">
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">Call Duration</p>
-                              <p className="text-lg font-semibold">{log.call_time_phone}s</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">SMS Sent</p>
-                              <p className="text-lg font-semibold">{log.sms_sent}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">SMS Received</p>
-                              <p className="text-lg font-semibold">{log.sms_received}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentDate(prev => subDays(prev, 7))}
+                  className="bg-white/50 backdrop-blur-sm border border-gray-200"
+                >
+                  Previous Week
+                </Button>
+                <span className="text-sm text-gray-500">
+                  {formatDate(subDays(currentDate, 6).toISOString())} - {formatDate(currentDate.toISOString())}
+                </span>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentDate(prev => addDays(prev, 7))}
+                  disabled={addDays(currentDate, 7) > new Date()}
+                  className="bg-white/50 backdrop-blur-sm border border-gray-200"
+                >
+                  Next Week
+                </Button>
+              </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={callLogs || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="created" 
+                      tickFormatter={formatDate}
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      labelFormatter={formatDate}
+                      formatter={(value, name) => {
+                        if (name === 'call_time_phone') return [`${value}s`, 'Avg. Duration'];
+                        return [value, name];
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="call_time_phone" 
+                      stroke="#8884d8" 
+                      name="Average Duration"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
