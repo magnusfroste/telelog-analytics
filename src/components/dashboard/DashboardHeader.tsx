@@ -1,14 +1,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Upload, Trash2, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardHeaderProps {
-  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteLogs: () => void;
   onLogout: () => void;
 }
 
-const DashboardHeader = ({ onFileUpload, onDeleteLogs, onLogout }: DashboardHeaderProps) => {
+const DashboardHeader = ({ onDeleteLogs, onLogout }: DashboardHeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -18,21 +20,14 @@ const DashboardHeader = ({ onFileUpload, onDeleteLogs, onLogout }: DashboardHead
         <p className="text-gray-500 mt-2">Real-time insights into your call center performance</p>
       </div>
       <div className="flex items-center gap-4">
-        <input
-          type="file"
-          accept=".csv"
-          onChange={onFileUpload}
-          className="hidden"
-          id="csv-upload"
-        />
-        <label htmlFor="csv-upload">
-          <Button variant="outline" className="cursor-pointer bg-white/50 backdrop-blur-sm border border-gray-200 hover:bg-white/80 transition-all duration-300" asChild>
-            <span>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload CSV
-            </span>
-          </Button>
-        </label>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/import')}
+          className="bg-white/50 backdrop-blur-sm border border-gray-200 hover:bg-white/80 transition-all duration-300"
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Import Data
+        </Button>
         <Button 
           variant="outline" 
           onClick={onDeleteLogs}
