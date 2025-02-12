@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsCards from "@/components/dashboard/MetricsCards";
 import CallsOverviewChart from "@/components/dashboard/CallsOverviewChart";
@@ -31,6 +32,7 @@ Structure your response with exactly three bullet points. Base your analysis onl
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [systemPrompt, setSystemPrompt] = useState(
     localStorage.getItem('systemPrompt') || DEFAULT_SYSTEM_PROMPT
