@@ -31,20 +31,10 @@ interface TokenUsage {
 
 interface InsightsChatDrawerProps {
   onTokenUsageUpdate: (usage: TokenUsage) => void;
+  systemPrompt: string;
 }
 
-const systemPrompt = `You are an analytics assistant specialized in analyzing call center data. Focus on providing insights about:
-- Call durations and patterns
-- SMS usage and engagement
-- Digital identity verification rates
-- Task types and closing methods
-- Peak times and workload distribution
-- Customer service efficiency metrics
-
-When discussing metrics, always use concrete numbers and percentages. Structure your responses clearly and be concise.
-Base your analysis only on the available data and highlight any notable trends or anomalies.`;
-
-const InsightsChatDrawer = ({ onTokenUsageUpdate }: InsightsChatDrawerProps) => {
+const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDrawerProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
