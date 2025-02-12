@@ -14,7 +14,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { MessageCircle, Send, Bot } from 'lucide-react';
+import { MessageCircle, Send, Bot, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,6 +33,12 @@ interface InsightsChatDrawerProps {
   onTokenUsageUpdate: (usage: TokenUsage) => void;
   systemPrompt: string;
 }
+
+const SUGGESTED_QUESTIONS = [
+  "What's the correlation between e-identification usage and call duration? Are we spending more time with customers when using e-ID verification?",
+  "Can you identify patterns in task types throughout the day? When do we handle more complex tasks vs simple inquiries?",
+  "What's the relationship between SMS usage and successful form closings? Do cases with more SMS exchanges have different outcomes?"
+];
 
 const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDrawerProps) => {
   const { toast } = useToast();
@@ -82,6 +88,10 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
     }
   };
 
+  const handleSuggestedQuestion = (question: string) => {
+    setInputMessage(question);
+  };
+
   return (
     <Drawer>
       <DrawerTrigger asChild>
@@ -100,6 +110,26 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
             Ask questions about your call center data and get AI-powered insights
           </DrawerDescription>
         </DrawerHeader>
+        
+        {messages.length === 0 && (
+          <div className="px-4">
+            <div className="mb-4 text-sm font-medium text-gray-500">Suggested questions:</div>
+            <div className="space-y-2">
+              {SUGGESTED_QUESTIONS.map((question, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="w-full justify-start text-left text-sm h-auto py-2 px-3"
+                  onClick={() => handleSuggestedQuestion(question)}
+                >
+                  <Lightbulb className="h-4 w-4 mr-2 flex-shrink-0 text-purple-500" />
+                  <span className="text-gray-600">{question}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1 p-4 h-[calc(80vh-180px)]">
           <div className="space-y-4">
             {messages.map((message, index) => (
