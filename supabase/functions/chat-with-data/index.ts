@@ -19,14 +19,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!anthropicApiKey || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing required environment variables');
+    console.log('Checking environment variables...');
+    if (!anthropicApiKey) {
+      throw new Error('Missing ANTHROPIC_API_KEY');
+    }
+    if (!supabaseUrl) {
+      throw new Error('Missing SUPABASE_URL');
+    }
+    if (!supabaseServiceKey) {
+      throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
     }
 
-    // Create Supabase client with service role key
+    console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch 1000 call logs for comprehensive analysis
+    console.log('Fetching call logs...');
     const { data: callLogs, error: dbError } = await supabase
       .from('call_logs')
       .select(`
@@ -41,11 +48,14 @@ serve(async (req) => {
         created
       `)
       .order('created', { ascending: false })
-      .limit(1000); // Increased to 1000 records for deeper analysis
+      .limit(1000);
 
     if (dbError) {
+      console.error('Database error:', dbError);
       throw new Error(`Database error: ${dbError.message}`);
     }
+
+    console.log(`Retrieved ${callLogs?.length || 0} call logs`);
 
     // Create a comprehensive summary of the data
     const summary = {
@@ -97,7 +107,7 @@ Full dataset contains ${callLogs.length} records for comprehensive analysis.`;
       return msg;
     });
 
-    console.log('Making request to Anthropic API with expanded dataset...');
+    console.log('Making request to Anthropic API...');
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -122,7 +132,7 @@ Full dataset contains ${callLogs.length} records for comprehensive analysis.`;
     }
 
     const data = await response.json();
-    console.log('Anthropic API response:', data);
+    console.log('Anthropic API response received');
 
     if (!data.content || !data.content[0] || !data.content[0].text) {
       console.error('Unexpected API response format:', data);
