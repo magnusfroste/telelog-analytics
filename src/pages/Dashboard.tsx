@@ -13,6 +13,7 @@ import {
   Calendar,
   Upload,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,7 +126,10 @@ const Dashboard = () => {
   };
 
   const getMetrics = () => {
-    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0 };
+    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
+    
+    const totalWithEid = callLogs.filter(log => log.e_identification).length;
+    
     return {
       total: callLogs.length,
       avgDuration: Math.round(
@@ -135,6 +139,7 @@ const Dashboard = () => {
       totalSMS:
         callLogs.reduce((acc, log) => acc + (log.sms_sent || 0), 0) +
         callLogs.reduce((acc, log) => acc + (log.sms_received || 0), 0),
+      eIdRate: Math.round((totalWithEid / callLogs.length) * 100)
     };
   };
 
@@ -183,7 +188,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
@@ -213,6 +218,20 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">{metrics.totalSMS}</div>
               <p className="text-xs text-gray-500">Messages exchanged</p>
             </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200 relative overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Digital Identity Rate</CardTitle>
+              <Shield className="h-4 w-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.eIdRate}%</div>
+              <p className="text-xs text-gray-500">Verified calls</p>
+            </CardContent>
+            <div 
+              className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500" 
+              style={{ width: `${metrics.eIdRate}%` }}
+            />
           </Card>
         </div>
 
