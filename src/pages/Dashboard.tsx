@@ -132,69 +132,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const rows = text.split('\n');
-      const headers = rows[0].split(',');
-      const records = rows.slice(1).map(row => {
-        const values = row.split(',');
-        return {
-          teleq_id: values[0] ? parseInt(values[0]) : null,
-          unique_task_id: values[1] || null,
-          phone_no: values[2] || null,
-          number_pres: values[3] || null,
-          created: values[4] || null,
-          scheduled_time: values[5] || null,
-          closed: values[6] || null,
-          form_closing: values[7] || null,
-          first_contact: values[8] || null,
-          created_on: values[9] || null,
-          created_by: values[10] || null,
-          category: values[11] || null,
-          first_user_id: values[12] || null,
-          last_user_id: values[13] || null,
-          call_time_phone: values[14] ? parseInt(values[14]) : null,
-          call_time_video: values[15] ? parseInt(values[15]) : null,
-          customer_number: values[16] || null,
-          sms_received: values[17] ? parseInt(values[17]) : null,
-          sms_sent: values[18] ? parseInt(values[18]) : null,
-          user_time: values[19] || null,
-          post_tag_code: values[20] || null,
-          type_of_task_closed: values[21] || null,
-          recordings: values[22] ? parseInt(values[22]) : null,
-          first_offered_time: values[23] || null,
-          type_of_task_created: values[24] || null,
-          e_identification: values[25] === 'true'
-        };
-      }).filter(record => record.teleq_id);
-
-      const { error } = await supabase
-        .from('call_logs')
-        .insert(records);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Successfully imported ${records.length} records`,
-      });
-
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
-    }
-
-    event.target.value = '';
-  };
-
   const getMetrics = () => {
     if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
     
@@ -259,7 +196,6 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 space-y-6 p-8">
         <DashboardHeader 
-          onFileUpload={handleFileUpload}
           onDeleteLogs={handleDeleteAllLogs}
           onLogout={handleLogout}
         />
