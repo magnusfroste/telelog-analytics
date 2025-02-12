@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -49,15 +50,12 @@ const Index = () => {
     formData.append('file', file);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('No session found');
-
       const response = await fetch(
         'https://mngmsroqvkaurledgfvn.supabase.co/functions/v1/process-csv',
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': supabase.supabaseKey,
           },
           body: formData,
         }

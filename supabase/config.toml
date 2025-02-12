@@ -2,4 +2,4 @@
 project_id = "mngmsroqvkaurledgfvn"
 
 [functions.process-csv]
-verify_jwt = true
+verify_jwt = false
