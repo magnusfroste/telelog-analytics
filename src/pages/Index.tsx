@@ -55,11 +55,12 @@ const Index = () => {
       {/* Features Grid */}
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="relative group">
+          {/* AI-Powered Analysis Card */}
+          <div className="relative group h-full">
             <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 opacity-20 group-hover:opacity-30 transition-opacity blur" />
-            <div className="relative space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
+            <div className="relative h-full space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
               <div className="flex items-center gap-4">
-                <Brain className="h-8 w-8 text-purple-600" />
+                <Brain className="h-8 w-8 text-purple-600 shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900">AI-Powered Analysis</h3>
               </div>
               <p className="text-gray-600">
@@ -68,11 +69,12 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="relative group">
+          {/* Chat with Data Card */}
+          <div className="relative group h-full">
             <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 opacity-20 group-hover:opacity-30 transition-opacity blur" />
-            <div className="relative space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
+            <div className="relative h-full space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
               <div className="flex items-center gap-4">
-                <MessageSquare className="h-8 w-8 text-purple-600" />
+                <MessageSquare className="h-8 w-8 text-purple-600 shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900">Chat with Your Data</h3>
               </div>
               <p className="text-gray-600">
@@ -81,11 +83,12 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="relative group">
+          {/* Real-time Insights Card */}
+          <div className="relative group h-full">
             <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 opacity-20 group-hover:opacity-30 transition-opacity blur" />
-            <div className="relative space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
+            <div className="relative h-full space-y-4 rounded-lg bg-white/90 backdrop-blur-sm p-6 shadow-lg ring-1 ring-gray-900/5">
               <div className="flex items-center gap-4">
-                <LineChart className="h-8 w-8 text-purple-600" />
+                <LineChart className="h-8 w-8 text-purple-600 shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900">Real-time Insights</h3>
               </div>
               <p className="text-gray-600">
