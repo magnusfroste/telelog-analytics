@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +62,7 @@ const Dashboard = () => {
       const { error } = await supabase
         .from('call_logs')
         .delete()
-        .neq('id', 0); // This deletes all records
+        .neq('id', 0);
 
       if (error) throw error;
 
@@ -74,7 +75,7 @@ const Dashboard = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -87,7 +88,7 @@ const Dashboard = () => {
         .from("call_logs")
         .select("*")
         .order("created", { ascending: false })
-        .limit(1000); // Increased from 100 to 1000 rows
+        .limit(1000);
 
       if (error) throw error;
       return data;
@@ -132,7 +133,7 @@ const Dashboard = () => {
           type_of_task_created: values[24] || null,
           e_identification: values[25] === 'true'
         };
-      }).filter(record => record.teleq_id); // Filter out empty rows
+      }).filter(record => record.teleq_id);
 
       const { error } = await supabase
         .from('call_logs')
@@ -149,7 +150,7 @@ const Dashboard = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -182,7 +183,7 @@ const Dashboard = () => {
       const formClosing = log.form_closing || 'Not Specified';
       acc[formClosing] = (acc[formClosing] || 0) + 1;
       return acc;
-    }, {});
+    }, {} as Record<string, number>);
 
     return Object.entries(stats).map(([name, value]) => ({
       name,
@@ -195,7 +196,7 @@ const Dashboard = () => {
   const metrics = getMetrics();
   const formClosingStats = getFormClosingStats();
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | number) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
     return date.toLocaleDateString();
@@ -308,13 +309,13 @@ const Dashboard = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="created" 
-                        tickFormatter={formatDate}
+                        tickFormatter={(value: string) => formatDate(value)}
                         angle={-45}
                         textAnchor="end"
                         height={70}
                       />
                       <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
+                      <Tooltip labelFormatter={(value: string) => formatDate(value)} />
                       <Line type="monotone" dataKey="call_time_phone" stroke="#8884d8" />
                     </LineChart>
                   </ResponsiveContainer>
