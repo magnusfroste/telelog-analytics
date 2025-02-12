@@ -48,7 +48,7 @@ serve(async (req) => {
         created
       `)
       .order('created', { ascending: false })
-      .limit(1000);
+      .limit(10000); // Updated to fetch all 10,000 rows
 
     if (dbError) {
       console.error('Database error:', dbError);
@@ -84,7 +84,7 @@ serve(async (req) => {
     };
 
     // Add detailed data summary to the system message
-    const dataContext = `Here is the comprehensive call center data summary (based on last ${callLogs.length} records):
+    const dataContext = `Here is the comprehensive call center data summary (based on all ${callLogs.length} records):
 - Average call duration: ${summary.avgCallDuration} seconds
 - Total SMS messages: ${summary.totalSMS}
 - E-identification rate: ${summary.eIdRate}%
