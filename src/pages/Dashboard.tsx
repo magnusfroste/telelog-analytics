@@ -29,6 +29,38 @@ import {
 } from "recharts";
 import { startOfDay, endOfDay, subDays, addDays } from "date-fns";
 
+// Define types for our data
+interface CallLog {
+  created: string;
+  call_time_phone: number;
+  form_closing: string;
+  sms_sent: number;
+  sms_received: number;
+  e_identification: boolean;
+}
+
+interface AggregatedData {
+  created: string;
+  call_time_phone: number;
+  total_calls: number;
+}
+
+interface FormClosingStat {
+  name: string;
+  value: number;
+}
+
+const COLORS = [
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff7300",
+  "#0088fe",
+  "#00c49f",
+  "#ffbb28",
+  "#ff8042",
+];
+
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -59,7 +91,7 @@ const Dashboard = () => {
       const { error } = await supabase
         .from('call_logs')
         .delete()
-        .neq('id', 0); // This deletes all records
+        .neq('id', 0);
 
       if (error) throw error;
 
@@ -81,8 +113,8 @@ const Dashboard = () => {
   const { data: callLogs, isLoading, refetch } = useQuery({
     queryKey: ["callLogs", currentDate],
     queryFn: async () => {
-      const startDate = startOfDay(subDays(currentDate, 6)); // Start of 7 days ago
-      const endDate = endOfDay(currentDate); // End of current day
+      const startDate = startOfDay(subDays(currentDate, 6));
+      const endDate = endOfDay(currentDate);
 
       const { data, error } = await supabase
         .from("call_logs")
@@ -93,8 +125,10 @@ const Dashboard = () => {
 
       if (error) throw error;
 
+      const typedData = data as CallLog[];
+      
       // Aggregate data by day
-      const aggregatedData = data.reduce((acc, call) => {
+      const aggregatedData = typedData.reduce<Record<string, AggregatedData>>((acc, call) => {
         const day = startOfDay(new Date(call.created)).toISOString();
         if (!acc[day]) {
           acc[day] = {
@@ -108,10 +142,9 @@ const Dashboard = () => {
         return acc;
       }, {});
 
-      // Convert to array and calculate average call duration
       return Object.values(aggregatedData).map(day => ({
         ...day,
-        call_time_phone: Math.round(day.call_time_phone / day.total_calls) // Average duration per call
+        call_time_phone: Math.round(day.call_time_phone / day.total_calls)
       }));
     },
   });
@@ -178,6 +211,37 @@ const Dashboard = () => {
 
     event.target.value = '';
   };
+
+  const getMetrics = () => {
+    if (!callLogs) return { total: 0, avgDuration: 0, totalSMS: 0, eIdRate: 0 };
+    
+    return {
+      total: callLogs.reduce((acc, day) => acc + day.total_calls, 0),
+      avgDuration: Math.round(
+        callLogs.reduce((acc, day) => acc + day.call_time_phone, 0) / callLogs.length
+      ),
+      totalSMS: 0, // We don't have SMS data in the aggregated data
+      eIdRate: 0, // We don't have e-identification data in the aggregated data
+    };
+  };
+
+  const getFormClosingStats = (): FormClosingStat[] => {
+    if (!callLogs) return [];
+    
+    const stats = callLogs.reduce<Record<string, number>>((acc, day) => {
+      const category = day.form_closing || 'Not Specified';
+      acc[category] = (acc[category] || 0) + day.total_calls;
+      return acc;
+    }, {});
+
+    return Object.entries(stats).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  };
+
+  const metrics = getMetrics();
+  const formClosingStats = getFormClosingStats();
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
