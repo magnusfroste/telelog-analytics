@@ -17,6 +17,12 @@ interface CallsOverviewChartProps {
 }
 
 const CallsOverviewChart = ({ callLogs, formatDate }: CallsOverviewChartProps) => {
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleString(); // This will show both date and time
+  };
+
   return (
     <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
       <CardContent className="p-6">
@@ -52,18 +58,24 @@ const CallsOverviewChart = ({ callLogs, formatDate }: CallsOverviewChartProps) =
                 {callLogs?.map((log, index) => (
                   <Card key={index} className="bg-white/30">
                     <CardContent className="p-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Call Duration</p>
-                          <p className="text-lg font-semibold">{log.call_time_phone}s</p>
+                      <div className="grid gap-4">
+                        <div className="border-b pb-2">
+                          <p className="text-sm font-medium text-gray-500">Date & Time</p>
+                          <p className="text-base">{formatDateTime(log.created)}</p>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">SMS Sent</p>
-                          <p className="text-lg font-semibold">{log.sms_sent}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">SMS Received</p>
-                          <p className="text-lg font-semibold">{log.sms_received}</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Call Duration</p>
+                            <p className="text-lg font-semibold">{log.call_time_phone}s</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">SMS Sent</p>
+                            <p className="text-lg font-semibold">{log.sms_sent}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">SMS Received</p>
+                            <p className="text-lg font-semibold">{log.sms_received}</p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
