@@ -47,6 +47,7 @@ const Dashboard = () => {
   );
   const [isEditing, setIsEditing] = useState(false);
   const [tempPrompt, setTempPrompt] = useState(systemPrompt);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: callLogs, isLoading, refetch } = useQuery({
     queryKey: ["callLogs"],
@@ -172,6 +173,7 @@ const Dashboard = () => {
         <DashboardHeader 
           onDeleteLogs={handleDeleteAllLogs}
           onLogout={handleLogout}
+          onAnalysisSettings={() => setIsSettingsOpen(true)}
         />
         <MetricsCards metrics={metrics} />
         <CallsOverviewChart callLogs={callLogs || []} formatDate={formatDate} />
@@ -181,13 +183,7 @@ const Dashboard = () => {
           colors={COLORS}
         />
         
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Analysis Settings
-            </Button>
-          </SheetTrigger>
+        <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <SheetContent className="w-[600px] sm:w-[540px]">
             <SheetHeader>
               <SheetTitle>Analysis Settings</SheetTitle>

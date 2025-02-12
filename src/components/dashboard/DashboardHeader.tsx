@@ -1,14 +1,15 @@
 
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, LogOut } from "lucide-react";
+import { Upload, Trash2, LogOut, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface DashboardHeaderProps {
   onDeleteLogs: () => void;
   onLogout: () => void;
+  onAnalysisSettings: () => void;
 }
 
-const DashboardHeader = ({ onDeleteLogs, onLogout }: DashboardHeaderProps) => {
+const DashboardHeader = ({ onDeleteLogs, onLogout, onAnalysisSettings }: DashboardHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -27,6 +28,14 @@ const DashboardHeader = ({ onDeleteLogs, onLogout }: DashboardHeaderProps) => {
         >
           <Upload className="mr-2 h-4 w-4" />
           Import Data
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={onAnalysisSettings}
+          className="bg-white/50 backdrop-blur-sm border border-gray-200 hover:bg-white/80 transition-all duration-300"
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Analysis Settings
         </Button>
         <Button 
           variant="outline" 
