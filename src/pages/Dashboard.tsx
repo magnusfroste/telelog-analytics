@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,6 +140,12 @@ const Dashboard = () => {
 
   const metrics = getMetrics();
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 space-y-6 p-8">
@@ -224,9 +229,15 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={callLogs || []}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="created" />
+                      <XAxis 
+                        dataKey="created" 
+                        tickFormatter={formatDate}
+                        angle={-45}
+                        textAnchor="end"
+                        height={70}
+                      />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip labelFormatter={formatDate} />
                       <Line type="monotone" dataKey="call_time_phone" stroke="#8884d8" />
                     </LineChart>
                   </ResponsiveContainer>
