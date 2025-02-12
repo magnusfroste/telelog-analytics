@@ -82,7 +82,7 @@ const Dashboard = () => {
       const { error } = await supabase
         .from('call_logs')
         .delete()
-        .neq('id', 0); // This deletes all records
+        .neq('id', 0);
 
       if (error) throw error;
 
@@ -99,6 +99,47 @@ const Dashboard = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-csv`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process CSV');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+
+    // Reset the input
+    event.target.value = '';
   };
 
   const { data: callLogs, isLoading, refetch } = useQuery({
