@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -191,10 +190,26 @@ const Dashboard = () => {
     }));
   };
 
+  const getTaskCreatedStats = () => {
+    if (!callLogs) return [];
+    
+    const stats = callLogs.reduce((acc, log) => {
+      const taskType = log.type_of_task_created || 'Not Specified';
+      acc[taskType] = (acc[taskType] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(stats).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  };
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   const metrics = getMetrics();
   const formClosingStats = getFormClosingStats();
+  const taskCreatedStats = getTaskCreatedStats();
 
   const formatDate = (dateStr: string | number) => {
     if (!dateStr) return "";
@@ -352,50 +367,97 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
-          <CardHeader>
-            <CardTitle>Form Closing Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={formClosingStats}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {formClosingStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <ScrollArea className="h-[200px] mt-4">
-              <div className="space-y-2">
-                {formClosingStats.map((stat, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-white/30 rounded">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span>{stat.name}</span>
-                    </div>
-                    <span className="font-semibold">{stat.value} calls</span>
-                  </div>
-                ))}
+        <div className="grid grid-cols-2 gap-6">
+          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
+            <CardHeader>
+              <CardTitle>Form Closing Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={formClosingStats}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {formClosingStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+              <ScrollArea className="h-[200px] mt-4">
+                <div className="space-y-2">
+                  {formClosingStats.map((stat, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white/30 rounded">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span>{stat.name}</span>
+                      </div>
+                      <span className="font-semibold">{stat.value} calls</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/50 backdrop-blur-sm border border-gray-200">
+            <CardHeader>
+              <CardTitle>Task Type Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={taskCreatedStats}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {taskCreatedStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <ScrollArea className="h-[200px] mt-4">
+                <div className="space-y-2">
+                  {taskCreatedStats.map((stat, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white/30 rounded">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span>{stat.name}</span>
+                      </div>
+                      <span className="font-semibold">{stat.value} calls</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
