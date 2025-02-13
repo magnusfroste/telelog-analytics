@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,12 +22,9 @@ interface ChartData {
   value: number;
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are a concise analytics assistant for call center data. Focus on providing exactly THREE key insights or recommendations. Your responses should be:
-- Brief and data-driven
-- Backed by specific numbers and percentages
-- Focused on actionable improvements
-
-Structure your response with exactly three bullet points. Base your analysis only on the available data, highlighting the most impactful trends or opportunities for improvement.`;
+const DEFAULT_SYSTEM_PROMPT = `You are a concise analytics assistant answering questions related to call center data.
+Base your analysis on the available data and share hidden insights. describe your thoughts. 
+Structure your response with a few bullet points, be short and to the point.`;
 
 const Dashboard = () => {
   const navigate = useNavigate();
