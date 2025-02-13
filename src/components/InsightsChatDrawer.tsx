@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,12 +45,21 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current;
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [messages]);
 
   const splitMessage = (content: string): string[] => {
-    // Split on sentences, keeping the punctuation
     const sentences = content.match(/[^.!?]+[.!?]+/g) || [content];
-    
-    // Group sentences into reasonable chunks (2-3 sentences per chunk)
     const chunks: string[] = [];
     let currentChunk = '';
     
@@ -94,7 +104,6 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
 
       if (error) throw error;
 
-      // Split the response into multiple messages
       const chunks = splitMessage(data.generatedText);
       chunks.forEach((chunk) => {
         setMessages(prev => [...prev, {
@@ -160,7 +169,10 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
           </div>
         )}
 
-        <ScrollArea className="flex-1 px-6 py-4 h-[calc(85vh-180px)]">
+        <div 
+          ref={scrollAreaRef} 
+          className="flex-1 px-6 py-4 h-[calc(85vh-180px)] overflow-y-auto"
+        >
           <div className="space-y-6">
             {messages.map((message, index) => (
               <div
@@ -196,7 +208,7 @@ const InsightsChatDrawer = ({ onTokenUsageUpdate, systemPrompt }: InsightsChatDr
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
         <DrawerFooter className="border-t border-gray-100 py-4 px-6">
           <form
             onSubmit={(e) => {
