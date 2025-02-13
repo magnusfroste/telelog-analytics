@@ -93,6 +93,17 @@ const Import = () => {
         return record;
       }).filter(record => record.teleq_id);
 
+      // First store the selected columns
+      const { error: metadataError } = await supabase
+        .from('analysis_config')
+        .upsert({ 
+          id: 'selected_columns',
+          columns: selectedColumns 
+        });
+
+      if (metadataError) throw metadataError;
+
+      // Then insert the records
       const { error } = await supabase
         .from('call_logs')
         .insert(records);

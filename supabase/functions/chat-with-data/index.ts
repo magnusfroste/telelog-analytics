@@ -33,20 +33,36 @@ serve(async (req) => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Fetching call logs...');
+    // First get the selected columns
+    console.log('Fetching selected columns...');
+    const { data: configData, error: configError } = await supabase
+      .from('analysis_config')
+      .select('columns')
+      .eq('id', 'selected_columns')
+      .single();
+
+    if (configError) {
+      console.error('Config error:', configError);
+      throw new Error(`Config error: ${configError.message}`);
+    }
+
+    const selectedColumns = configData?.columns || [
+      'teleq_id',
+      'created',
+      'form_closing',
+      'category',
+      'call_time_phone',
+      'sms_sent',
+      'type_of_task_closed',
+      'e_identification'
+    ];
+
+    console.log('Selected columns:', selectedColumns);
+
+    console.log('Fetching call logs with selected columns...');
     const { data: callLogs, error: dbError } = await supabase
       .from('call_logs')
-      .select(`
-        call_time_phone,
-        call_time_video,
-        sms_sent,
-        sms_received,
-        e_identification,
-        form_closing,
-        type_of_task_created,
-        type_of_task_closed,
-        created
-      `)
+      .select(selectedColumns.join(','))
       .order('created', { ascending: false })
       .limit(1000);
 
@@ -57,44 +73,66 @@ serve(async (req) => {
 
     console.log(`Retrieved ${callLogs?.length || 0} call logs`);
 
-    // Create a comprehensive summary of the data
-    const summary = {
-      totalCalls: callLogs.length,
-      avgCallDuration: Math.round(
+    // Create a comprehensive summary of the data based on selected columns
+    const summary: Record<string, any> = {
+      totalCalls: callLogs.length
+    };
+
+    // Dynamically build summary based on selected columns
+    if (selectedColumns.includes('call_time_phone')) {
+      summary.avgCallDuration = Math.round(
         callLogs.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) / callLogs.length
-      ),
-      totalSMS: callLogs.reduce((acc, log) => acc + (log.sms_sent || 0) + (log.sms_received || 0), 0),
-      eIdRate: Math.round(
+      );
+    }
+
+    if (selectedColumns.includes('sms_sent') || selectedColumns.includes('sms_received')) {
+      summary.totalSMS = callLogs.reduce((acc, log) => 
+        acc + (log.sms_sent || 0) + (log.sms_received || 0), 0
+      );
+    }
+
+    if (selectedColumns.includes('e_identification')) {
+      summary.eIdRate = Math.round(
         (callLogs.filter(log => log.e_identification).length / callLogs.length) * 100
-      ),
-      taskTypes: Object.entries(
+      );
+    }
+
+    if (selectedColumns.includes('type_of_task_created')) {
+      summary.taskTypes = Object.entries(
         callLogs.reduce((acc, log) => {
           const type = log.type_of_task_created || 'Unknown';
           acc[type] = (acc[type] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)
-      ),
-      closingMethods: Object.entries(
+      );
+    }
+
+    if (selectedColumns.includes('form_closing')) {
+      summary.closingMethods = Object.entries(
         callLogs.reduce((acc, log) => {
           const method = log.form_closing || 'Unknown';
           acc[method] = (acc[method] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)
-      )
-    };
+      );
+    }
 
-    // Add detailed data summary to the system message
+    // Create a data context message that only includes selected columns
     const dataContext = `Here is the comprehensive call center data summary (based on last ${callLogs.length} records):
-- Average call duration: ${summary.avgCallDuration} seconds
-- Total SMS messages: ${summary.totalSMS}
-- E-identification rate: ${summary.eIdRate}%
-- Task types distribution: ${summary.taskTypes.map(([type, count]) => `${type}: ${count}`).join(', ')}
-- Closing methods: ${summary.closingMethods.map(([method, count]) => `${method}: ${count}`).join(', ')}
+${Object.entries(summary)
+  .map(([key, value]) => {
+    if (Array.isArray(value)) {
+      return `- ${key}: ${value.map(([type, count]) => `${type}: ${count}`).join(', ')}`;
+    }
+    return `- ${key}: ${value}`;
+  })
+  .join('\n')}
 
 Raw data sample (showing first 15 records for context):
 ${JSON.stringify(callLogs.slice(0, 15), null, 2)}
 
-Full dataset contains ${callLogs.length} records for comprehensive analysis.`;
+Full dataset contains ${callLogs.length} records for comprehensive analysis.
+Selected columns for analysis: ${selectedColumns.join(', ')}`;
 
     // Update the first system message to include the data
     const updatedMessages = messages.map((msg: any, index: number) => {
