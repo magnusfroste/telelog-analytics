@@ -15,13 +15,13 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     console.log('Checking environment variables...');
-    if (!anthropicApiKey) {
-      throw new Error('Missing ANTHROPIC_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('Missing OPENAI_API_KEY');
     }
     if (!supabaseUrl) {
       throw new Error('Missing SUPABASE_URL');
@@ -33,7 +33,46 @@ serve(async (req) => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First get the selected columns
+    // Get the user's question from the last message
+    const userQuestion = messages[messages.length - 1].content;
+
+    // Generate embedding for the question
+    console.log('Generating embedding for question...');
+    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input: userQuestion,
+        model: "text-embedding-3-small"
+      }),
+    });
+
+    if (!embeddingResponse.ok) {
+      throw new Error(`OpenAI API error: ${await embeddingResponse.text()}`);
+    }
+
+    const { data: [{ embedding }] } = await embeddingResponse.json();
+
+    // Perform vector similarity search
+    console.log('Performing vector similarity search...');
+    const { data: similarDocs, error: searchError } = await supabase.rpc(
+      'match_call_logs',
+      {
+        query_embedding: embedding,
+        match_threshold: 0.5,
+        match_count: 10
+      }
+    );
+
+    if (searchError) {
+      console.error('Search error:', searchError);
+      throw new Error(`Search error: ${searchError.message}`);
+    }
+
+    // Get the selected columns for analysis
     console.log('Fetching selected columns...');
     const { data: configData, error: configError } = await supabase
       .from('analysis_config')
@@ -57,89 +96,42 @@ serve(async (req) => {
       'e_identification'
     ];
 
-    console.log('Selected columns:', selectedColumns);
-
-    console.log('Fetching call logs with selected columns...');
-    const { data: callLogs, error: dbError } = await supabase
-      .from('call_logs')
-      .select(selectedColumns.join(','))
-      .order('created', { ascending: false })
-      .limit(1000);
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error(`Database error: ${dbError.message}`);
-    }
-
-    console.log(`Retrieved ${callLogs?.length || 0} call logs`);
-
-    // Create a comprehensive summary of the data based on selected columns
-    const summary: Record<string, any> = {
-      totalCalls: callLogs.length
-    };
-
-    // Dynamically build summary based on selected columns
-    if (selectedColumns.includes('call_time_phone')) {
-      summary.avgCallDuration = Math.round(
-        callLogs.reduce((acc, log) => acc + (log.call_time_phone || 0), 0) / callLogs.length
-      );
-    }
-
-    if (selectedColumns.includes('sms_sent') || selectedColumns.includes('sms_received')) {
-      summary.totalSMS = callLogs.reduce((acc, log) => 
-        acc + (log.sms_sent || 0) + (log.sms_received || 0), 0
-      );
-    }
-
-    if (selectedColumns.includes('e_identification')) {
-      summary.eIdRate = Math.round(
-        (callLogs.filter(log => log.e_identification).length / callLogs.length) * 100
-      );
-    }
-
-    if (selectedColumns.includes('type_of_task_created')) {
-      summary.taskTypes = Object.entries(
-        callLogs.reduce((acc, log) => {
-          const type = log.type_of_task_created || 'Unknown';
-          acc[type] = (acc[type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      );
-    }
-
-    if (selectedColumns.includes('form_closing')) {
-      summary.closingMethods = Object.entries(
-        callLogs.reduce((acc, log) => {
-          const method = log.form_closing || 'Unknown';
+    // Create a summary of the relevant data
+    const summary = {
+      totalRelevantCalls: similarDocs.length,
+      averageCallDuration: Math.round(
+        similarDocs.reduce((acc, doc) => acc + (doc.metadata.call_time_phone || 0), 0) / similarDocs.length
+      ),
+      relevantClosingMethods: Object.entries(
+        similarDocs.reduce((acc, doc) => {
+          const method = doc.metadata.form_closing || 'Unknown';
           acc[method] = (acc[method] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)
-      );
-    }
+      ),
+    };
 
-    // Create a data context message that only includes selected columns
-    const dataContext = `Here is the comprehensive call center data summary (based on last ${callLogs.length} records):
-${Object.entries(summary)
-  .map(([key, value]) => {
-    if (Array.isArray(value)) {
-      return `- ${key}: ${value.map(([type, count]) => `${type}: ${count}`).join(', ')}`;
-    }
-    return `- ${key}: ${value}`;
-  })
-  .join('\n')}
+    // Create a data context that focuses on the relevant documents
+    const dataContext = `Here is the analysis of the most relevant call logs based on the user's question:
 
-Raw data sample (showing first 15 records for context):
-${JSON.stringify(callLogs.slice(0, 15), null, 2)}
+Summary of relevant calls:
+- Total relevant calls analyzed: ${summary.totalRelevantCalls}
+- Average call duration: ${summary.averageCallDuration} seconds
+- Closing methods distribution: ${summary.relevantClosingMethods.map(([method, count]) => 
+  `${method}: ${count} calls`).join(', ')}
 
-Full dataset contains ${callLogs.length} records for comprehensive analysis.
-Selected columns for analysis: ${selectedColumns.join(', ')}`;
+Sample of relevant call logs:
+${JSON.stringify(similarDocs.slice(0, 5).map(doc => doc.metadata), null, 2)}
 
-    // Update the first system message to include the data
+The data shown above represents the most relevant call logs based on the user's question. 
+Available columns for analysis: ${selectedColumns.join(', ')}`;
+
+    // Update the first system message to include the focused data context
     const updatedMessages = messages.map((msg: any, index: number) => {
       if (index === 0 && msg.role === 'system') {
         return {
           ...msg,
-          content: `${msg.content}\n\nHere's the data to analyze:\n${dataContext}`
+          content: `${msg.content}\n\nHere's the relevant data to analyze:\n${dataContext}`
         };
       }
       return msg;
@@ -149,7 +141,7 @@ Selected columns for analysis: ${selectedColumns.join(', ')}`;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicApiKey,
+        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
         'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
@@ -172,15 +164,8 @@ Selected columns for analysis: ${selectedColumns.join(', ')}`;
     const data = await response.json();
     console.log('Anthropic API response received');
 
-    if (!data.content || !data.content[0] || !data.content[0].text) {
-      console.error('Unexpected API response format:', data);
-      throw new Error('Invalid response format from Anthropic API');
-    }
-
-    const generatedText = data.content[0].text;
-
     return new Response(JSON.stringify({ 
-      generatedText,
+      generatedText: data.content[0].text,
       usage: {
         model: 'claude-3-opus-20240229',
         input_tokens: data.usage?.input_tokens || 0,
