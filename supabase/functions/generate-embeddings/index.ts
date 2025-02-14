@@ -30,14 +30,20 @@ serve(async (req) => {
 
     if (existingError) throw existingError;
 
-    const processedIds = existingEmbeddings.map(e => e.call_log_id);
+    const processedIds = existingEmbeddings?.map(e => e.call_log_id) || [];
 
     // Then, fetch call logs that don't have embeddings
-    const { data: callLogs, error: fetchError } = await supabase
+    let query = supabase
       .from('call_logs')
       .select('*')
-      .not('id', 'in', processedIds.length > 0 ? processedIds : [-1])
       .limit(10); // Process in batches to avoid timeouts
+
+    // Only apply the not-in filter if we have processed IDs
+    if (processedIds.length > 0) {
+      query = query.not('id', 'in', processedIds);
+    }
+
+    const { data: callLogs, error: fetchError } = await query;
 
     if (fetchError) throw fetchError;
 
