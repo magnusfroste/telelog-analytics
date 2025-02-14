@@ -23,18 +23,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch call logs that don't have embeddings yet
+    // First, get all call_log_ids that already have embeddings
+    const { data: existingEmbeddings, error: existingError } = await supabase
+      .from('call_log_embeddings')
+      .select('call_log_id');
+
+    if (existingError) throw existingError;
+
+    const processedIds = existingEmbeddings.map(e => e.call_log_id);
+
+    // Then, fetch call logs that don't have embeddings
     const { data: callLogs, error: fetchError } = await supabase
       .from('call_logs')
       .select('*')
-      .not('id', 'in', (
-        supabase
-          .from('call_log_embeddings')
-          .select('call_log_id')
-      ))
+      .not('id', 'in', processedIds.length > 0 ? processedIds : [-1])
       .limit(10); // Process in batches to avoid timeouts
 
     if (fetchError) throw fetchError;
+
     if (!callLogs || callLogs.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No new call logs to process' }),
@@ -72,7 +78,7 @@ serve(async (req) => {
       });
 
       if (!embeddingResponse.ok) {
-        console.error(`Error generating embedding for call log ${log.id}`);
+        console.error(`Error generating embedding for call log ${log.id}`, await embeddingResponse.text());
         continue;
       }
 
