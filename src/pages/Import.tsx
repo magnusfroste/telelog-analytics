@@ -137,7 +137,11 @@ const Import = () => {
         });
         
         return record;
-      }).filter(record => record.teleq_id);
+      }).filter(record => {
+        // Filter out records that don't have a valid created date
+        const createdDate = record.created;
+        return createdDate !== null && createdDate !== undefined;
+      });
 
       // First store the selected columns
       const { error: metadataError } = await supabase
