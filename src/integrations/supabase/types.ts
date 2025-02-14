@@ -575,6 +575,18 @@ export type Database = {
             }
             Returns: unknown
           }
+      match_call_logs: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+        }
+        Returns: {
+          id: number
+          similarity: number
+          metadata: Json
+        }[]
+      }
       sparsevec_out: {
         Args: {
           "": unknown
