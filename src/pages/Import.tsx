@@ -61,6 +61,26 @@ const Import = () => {
     }
   };
 
+  const parseDate = (dateStr: string | null): string | null => {
+    if (!dateStr) return null;
+    
+    try {
+      // Handle year-only dates
+      if (/^\d{4}$/.test(dateStr)) {
+        return `${dateStr}-01-01T00:00:00Z`;
+      }
+      
+      // Try parsing the date and format it properly
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
   const handleGenerateEmbeddings = async () => {
     setIsGeneratingEmbeddings(true);
     try {
@@ -106,6 +126,9 @@ const Import = () => {
                 break;
               case 'boolean':
                 record[columnName] = value === 'true';
+                break;
+              case 'date':
+                record[columnName] = parseDate(value);
                 break;
               default:
                 record[columnName] = value || null;
