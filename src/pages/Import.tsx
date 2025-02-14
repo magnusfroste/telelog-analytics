@@ -48,6 +48,7 @@ const Import = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
     COLUMNS.filter(col => col.defaultSelected || col.required).map(col => col.name)
   );
@@ -57,6 +58,28 @@ const Import = () => {
       setSelectedColumns(prev => [...prev, columnName]);
     } else {
       setSelectedColumns(prev => prev.filter(col => col !== columnName));
+    }
+  };
+
+  const handleGenerateEmbeddings = async () => {
+    setIsGeneratingEmbeddings(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-embeddings');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message || "Successfully generated embeddings",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate embeddings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingEmbeddings(false);
     }
   };
 
@@ -114,6 +137,9 @@ const Import = () => {
         title: "Success",
         description: `Successfully imported ${records.length} records`,
       });
+
+      // After successful upload, trigger embedding generation
+      await handleGenerateEmbeddings();
 
       navigate('/dashboard');
     } catch (error) {
@@ -196,6 +222,16 @@ const Import = () => {
                   </span>
                 </div>
               </label>
+            </div>
+
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleGenerateEmbeddings}
+                disabled={isGeneratingEmbeddings}
+                variant="outline"
+              >
+                {isGeneratingEmbeddings ? "Generating Embeddings..." : "Generate Embeddings"}
+              </Button>
             </div>
           </div>
         </div>
