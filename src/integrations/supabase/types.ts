@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analysis_config: {
+        Row: {
+          columns: string[]
+          created_at: string
+          id: string
+        }
+        Insert: {
+          columns: string[]
+          created_at?: string
+          id: string
+        }
+        Update: {
+          columns?: string[]
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           call_time_phone: number | null
