@@ -30,7 +30,8 @@ serve(async (req) => {
     console.log('Fetching call logs...');
     const { data: callLogs, error: fetchError } = await supabase
       .from('call_logs')
-      .select('id, teleq_id, created, form_closing, category, type_of_task_closed');
+      .select('id, teleq_id, created, form_closing, category, type_of_task_closed')
+      .limit(5); // Let's start with a small batch for testing
 
     if (fetchError) {
       console.error('Error fetching call logs:', fetchError);
@@ -44,28 +45,12 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Found ${callLogs.length} total call logs`);
-
-    console.log('Checking existing embeddings...');
-    const { data: existingEmbeddings, error: existingError } = await supabase
-      .from('call_log_embeddings')
-      .select('call_log_id');
-
-    if (existingError) {
-      console.error('Error fetching existing embeddings:', existingError);
-      throw existingError;
-    }
-
-    const existingIds = new Set(existingEmbeddings?.map(e => e.call_log_id) || []);
-    const logsToProcess = callLogs.filter(log => !existingIds.has(log.id));
-
-    console.log(`Found ${existingIds.size} existing embeddings`);
-    console.log(`Processing ${logsToProcess.length} new call logs`);
+    console.log(`Found ${callLogs.length} call logs to process`);
 
     let successCount = 0;
     let errorCount = 0;
 
-    for (const log of logsToProcess) {
+    for (const log of callLogs) {
       try {
         const textContent = `
           Call ID: ${log.teleq_id}
@@ -84,17 +69,18 @@ serve(async (req) => {
 
         const [{ embedding }] = embeddingResponse.data.data;
         
-        console.log('Embedding type:', typeof embedding);
-        console.log('Embedding length:', embedding.length);
-        console.log('First few values:', embedding.slice(0, 5));
+        console.log('Embedding generated:', {
+          dimension: embedding.length,
+          sample: embedding.slice(0, 5)
+        });
 
-        // Insert directly using the embedding array
-        const { error: insertError } = await supabase.rpc(
-          'insert_embedding',
-          {
-            p_call_log_id: log.id,
-            p_embedding: embedding,
-            p_metadata: {
+        // Direct insert into the table
+        const { error: insertError } = await supabase
+          .from('call_log_embeddings')
+          .insert({
+            call_log_id: log.id,
+            embedding,
+            metadata: {
               teleq_id: log.teleq_id,
               created: log.created,
               form_closing: log.form_closing,
@@ -102,8 +88,7 @@ serve(async (req) => {
               type_of_task_closed: log.type_of_task_closed,
               text_content: textContent
             }
-          }
-        );
+          });
 
         if (insertError) {
           console.error(`Error inserting embedding for call log ${log.id}:`, insertError);
@@ -123,8 +108,6 @@ serve(async (req) => {
       message: `Embedding generation complete`,
       details: {
         total_logs: callLogs.length,
-        existing_embeddings: existingIds.size,
-        logs_processed: logsToProcess.length,
         successful: successCount,
         failed: errorCount
       }
