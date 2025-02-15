@@ -24,14 +24,21 @@ serve(async (req) => {
   }
 
   try {
+    // First, get existing call_log_ids from embeddings
+    const { data: existingEmbeddings, error: existingError } = await supabase
+      .from('call_log_embeddings')
+      .select('call_log_id');
+
+    if (existingError) throw existingError;
+
+    // Create array of existing call_log_ids
+    const existingIds = existingEmbeddings?.map(e => e.call_log_id) || [];
+
     // Fetch all call logs that don't have embeddings yet
     const { data: callLogs, error: fetchError } = await supabase
       .from('call_logs')
       .select('id, teleq_id, created, form_closing, category, type_of_task_closed')
-      .not('id', 'in', (
-        select('call_log_id')
-        .from('call_log_embeddings')
-      ));
+      .not('id', 'in', existingIds);
 
     if (fetchError) throw fetchError;
     if (!callLogs?.length) {
