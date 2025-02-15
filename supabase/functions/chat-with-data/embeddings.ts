@@ -22,11 +22,6 @@ export async function findSimilarCallLogs(
   matchThreshold = 0.7,
   matchCount = 5
 ): Promise<CallLogMatch[]> {
-  if (!queryText || !openaiApiKey || !supabaseUrl || !supabaseKey) {
-    console.error('Missing required parameters');
-    return [];
-  }
-
   const openai = new OpenAIApi(new Configuration({ apiKey: openaiApiKey }));
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -36,11 +31,6 @@ export async function findSimilarCallLogs(
       model: "text-embedding-3-small",
       input: queryText.replace(/\n/g, " "),
     });
-
-    if (!embeddingResponse?.data?.data?.[0]?.embedding) {
-      console.error('Failed to generate embedding');
-      return [];
-    }
 
     const [{ embedding }] = embeddingResponse.data.data;
 
@@ -54,12 +44,12 @@ export async function findSimilarCallLogs(
 
     if (error) {
       console.error('Error finding similar call logs:', error);
-      return [];
+      throw error;
     }
 
     return matches || [];
   } catch (error) {
     console.error('Error in findSimilarCallLogs:', error);
-    return [];
+    throw error;
   }
 }

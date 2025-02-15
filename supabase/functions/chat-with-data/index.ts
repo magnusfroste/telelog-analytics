@@ -14,15 +14,10 @@ serve(async (req) => {
     const { messages, systemPrompt } = await req.json();
 
     // Get environment variables
-    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    // Check if all required environment variables are present
-    if (!anthropicKey || !openaiKey || !supabaseUrl || !supabaseKey) {
-      throw new Error('Missing required environment variables');
-    }
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')!;
+    const openaiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Get the last user message
     const lastUserMessage = messages.findLast((m: ChatMessage) => m.role === 'user');

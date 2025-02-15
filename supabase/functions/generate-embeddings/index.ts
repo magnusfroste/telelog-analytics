@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import OpenAI from "https://esm.sh/openai@4.28.0";
+import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +24,7 @@ serve(async (req) => {
 
     console.log('Initializing clients...');
     
-    const openAI = new OpenAI({ apiKey: openAiKey });
+    const openAI = new OpenAIApi(new Configuration({ apiKey: openAiKey }));
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Fetching call logs...');
@@ -62,12 +62,12 @@ serve(async (req) => {
 
         console.log(`Generating embedding for call log ${log.id}...`);
 
-        const embeddingResponse = await openAI.embeddings.create({
+        const embeddingResponse = await openAI.createEmbedding({
           model: "text-embedding-3-small",
           input: textContent,
         });
 
-        const embedding = embeddingResponse.data[0].embedding;
+        const [{ embedding }] = embeddingResponse.data.data;
         
         console.log('Embedding generated:', {
           dimension: embedding.length,
