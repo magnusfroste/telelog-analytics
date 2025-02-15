@@ -525,6 +525,14 @@ export type Database = {
         }
         Returns: unknown
       }
+      insert_embedding: {
+        Args: {
+          p_call_log_id: number
+          p_embedding: number[]
+          p_metadata: Json
+        }
+        Returns: undefined
+      }
       ivfflat_bit_support: {
         Args: {
           "": unknown
