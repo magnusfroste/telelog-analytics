@@ -84,25 +84,26 @@ serve(async (req) => {
 
         const [{ embedding }] = embeddingResponse.data.data;
         
-        // Log the embedding structure for debugging
         console.log('Embedding type:', typeof embedding);
         console.log('Embedding length:', embedding.length);
         console.log('First few values:', embedding.slice(0, 5));
 
-        const { error: insertError } = await supabase
-          .from('call_log_embeddings')
-          .insert({
-            call_log_id: log.id,
-            embedding: Array.from(embedding), // Ensure the embedding is properly formatted as an array
-            metadata: {
+        // Insert directly using the embedding array
+        const { error: insertError } = await supabase.rpc(
+          'insert_embedding',
+          {
+            p_call_log_id: log.id,
+            p_embedding: embedding,
+            p_metadata: {
               teleq_id: log.teleq_id,
               created: log.created,
               form_closing: log.form_closing,
               category: log.category,
               type_of_task_closed: log.type_of_task_closed,
-              text_content: textContent // Store the original text for reference
+              text_content: textContent
             }
-          });
+          }
+        );
 
         if (insertError) {
           console.error(`Error inserting embedding for call log ${log.id}:`, insertError);
