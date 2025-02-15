@@ -35,10 +35,16 @@ serve(async (req) => {
     const existingIds = existingEmbeddings?.map(e => e.call_log_id) || [];
 
     // Fetch all call logs that don't have embeddings yet
-    const { data: callLogs, error: fetchError } = await supabase
+    let query = supabase
       .from('call_logs')
-      .select('id, teleq_id, created, form_closing, category, type_of_task_closed')
-      .not('id', 'in', existingIds);
+      .select('id, teleq_id, created, form_closing, category, type_of_task_closed');
+    
+    // Only apply the filter if there are existing embeddings
+    if (existingIds.length > 0) {
+      query = query.not('id', 'in', `(${existingIds.join(',')})`);
+    }
+
+    const { data: callLogs, error: fetchError } = await query;
 
     if (fetchError) throw fetchError;
     if (!callLogs?.length) {
