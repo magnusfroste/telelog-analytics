@@ -14,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize OpenAI and Supabase clients
     const openAiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -28,7 +27,6 @@ serve(async (req) => {
     const openAI = new OpenAIApi(new Configuration({ apiKey: openAiKey }));
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all call logs
     console.log('Fetching call logs...');
     const { data: callLogs, error: fetchError } = await supabase
       .from('call_logs')
@@ -48,7 +46,6 @@ serve(async (req) => {
 
     console.log(`Found ${callLogs.length} total call logs`);
 
-    // Get existing embeddings
     console.log('Checking existing embeddings...');
     const { data: existingEmbeddings, error: existingError } = await supabase
       .from('call_log_embeddings')
@@ -59,7 +56,6 @@ serve(async (req) => {
       throw existingError;
     }
 
-    // Filter out logs that already have embeddings
     const existingIds = new Set(existingEmbeddings?.map(e => e.call_log_id) || []);
     const logsToProcess = callLogs.filter(log => !existingIds.has(log.id));
 
@@ -71,7 +67,6 @@ serve(async (req) => {
 
     for (const log of logsToProcess) {
       try {
-        // Create text representation of the call log
         const textContent = `
           Call ID: ${log.teleq_id}
           Created: ${log.created}
@@ -82,28 +77,30 @@ serve(async (req) => {
 
         console.log(`Generating embedding for call log ${log.id}...`);
 
-        // Generate embedding
         const embeddingResponse = await openAI.createEmbedding({
           model: "text-embedding-3-small",
           input: textContent,
         });
 
         const [{ embedding }] = embeddingResponse.data.data;
+        
+        // Log the embedding structure for debugging
+        console.log('Embedding type:', typeof embedding);
+        console.log('Embedding length:', embedding.length);
+        console.log('First few values:', embedding.slice(0, 5));
 
-        console.log(`Successfully generated embedding for call log ${log.id}`);
-
-        // Store embedding and metadata
         const { error: insertError } = await supabase
           .from('call_log_embeddings')
           .insert({
             call_log_id: log.id,
-            embedding,
+            embedding: Array.from(embedding), // Ensure the embedding is properly formatted as an array
             metadata: {
               teleq_id: log.teleq_id,
               created: log.created,
               form_closing: log.form_closing,
               category: log.category,
               type_of_task_closed: log.type_of_task_closed,
+              text_content: textContent // Store the original text for reference
             }
           });
 
