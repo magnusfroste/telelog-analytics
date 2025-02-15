@@ -8,29 +8,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAiKey = Deno.env.get('OPENAI_API_KEY')!;
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-const openAI = new OpenAIApi(new Configuration({ apiKey: openAiKey }));
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get all call logs first
+    // Initialize OpenAI and Supabase clients
+    const openAiKey = Deno.env.get('OPENAI_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!openAiKey || !supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing required environment variables');
+    }
+
+    console.log('Initializing clients...');
+    
+    const openAI = new OpenAIApi(new Configuration({ apiKey: openAiKey }));
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get all call logs
+    console.log('Fetching call logs...');
     const { data: callLogs, error: fetchError } = await supabase
       .from('call_logs')
       .select('id, teleq_id, created, form_closing, category, type_of_task_closed');
 
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('Error fetching call logs:', fetchError);
+      throw fetchError;
+    }
+
     if (!callLogs?.length) {
+      console.log('No call logs found in database');
       return new Response(JSON.stringify({ message: "No call logs found" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -39,17 +49,25 @@ serve(async (req) => {
     console.log(`Found ${callLogs.length} total call logs`);
 
     // Get existing embeddings
+    console.log('Checking existing embeddings...');
     const { data: existingEmbeddings, error: existingError } = await supabase
       .from('call_log_embeddings')
       .select('call_log_id');
 
-    if (existingError) throw existingError;
+    if (existingError) {
+      console.error('Error fetching existing embeddings:', existingError);
+      throw existingError;
+    }
 
     // Filter out logs that already have embeddings
     const existingIds = new Set(existingEmbeddings?.map(e => e.call_log_id) || []);
     const logsToProcess = callLogs.filter(log => !existingIds.has(log.id));
 
+    console.log(`Found ${existingIds.size} existing embeddings`);
     console.log(`Processing ${logsToProcess.length} new call logs`);
+
+    let successCount = 0;
+    let errorCount = 0;
 
     for (const log of logsToProcess) {
       try {
@@ -62,7 +80,7 @@ serve(async (req) => {
           Task Type: ${log.type_of_task_closed}
         `.trim();
 
-        console.log(`Generating embedding for call log ${log.id}`);
+        console.log(`Generating embedding for call log ${log.id}...`);
 
         // Generate embedding
         const embeddingResponse = await openAI.createEmbedding({
@@ -91,26 +109,34 @@ serve(async (req) => {
 
         if (insertError) {
           console.error(`Error inserting embedding for call log ${log.id}:`, insertError);
-          throw insertError;
+          errorCount++;
+          continue;
         }
         
         console.log(`Successfully stored embedding for call log ${log.id}`);
+        successCount++;
       } catch (error) {
         console.error(`Error processing call log ${log.id}:`, error);
+        errorCount++;
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        message: `Successfully processed ${logsToProcess.length} call logs`,
-        details: {
-          total_logs: callLogs.length,
-          existing_embeddings: existingIds.size,
-          new_processed: logsToProcess.length
-        }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const summary = {
+      message: `Embedding generation complete`,
+      details: {
+        total_logs: callLogs.length,
+        existing_embeddings: existingIds.size,
+        logs_processed: logsToProcess.length,
+        successful: successCount,
+        failed: errorCount
+      }
+    };
+
+    console.log('Generation summary:', summary);
+
+    return new Response(JSON.stringify(summary), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Error in generate-embeddings function:', error);
     return new Response(
