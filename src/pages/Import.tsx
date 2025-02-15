@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,6 @@ const Import = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
     COLUMNS.filter(col => col.defaultSelected || col.required).map(col => col.name)
   );
@@ -60,64 +60,6 @@ const Import = () => {
     }
   };
 
-  const parseDate = (dateStr: string | null): string | null => {
-    if (!dateStr) return null;
-    
-    try {
-      // Handle year-only dates
-      if (/^\d{4}$/.test(dateStr)) {
-        return `${dateStr}-01-01T00:00:00Z`;
-      }
-      
-      // Remove any quotes and trim whitespace
-      const cleanDateStr = dateStr.replace(/['"]/g, '').trim();
-      
-      // Handle different date formats
-      let date;
-      if (cleanDateStr.includes('-')) {
-        date = new Date(cleanDateStr);
-      } else if (cleanDateStr.includes('/')) {
-        // Assuming DD/MM/YYYY format
-        const [day, month, year] = cleanDateStr.split('/');
-        date = new Date(`${year}-${month}-${day}`);
-      } else {
-        date = new Date(cleanDateStr);
-      }
-      
-      if (isNaN(date.getTime())) {
-        console.warn(`Invalid date: ${dateStr}`);
-        return null;
-      }
-      
-      return date.toISOString();
-    } catch (error) {
-      console.warn(`Error parsing date: ${dateStr}`, error);
-      return null;
-    }
-  };
-
-  const handleGenerateEmbeddings = async () => {
-    setIsGeneratingEmbeddings(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-embeddings');
-      
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: data.message || "Successfully generated embeddings",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate embeddings",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingEmbeddings(false);
-    }
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -125,81 +67,48 @@ const Import = () => {
     setIsUploading(true);
     try {
       const text = await file.text();
-      const rows = text.split('\n').filter(row => row.trim()); // Remove empty lines
-      const headers = rows[0].split(',').map(h => h.trim());
-      
+      const rows = text.split('\n');
       const records = rows.slice(1).map(row => {
-        const values = row.split(',').map(v => v.trim());
+        const values = row.split(',');
         const record: Record<string, any> = {};
         
-        selectedColumns.forEach(columnName => {
-          const columnIndex = headers.indexOf(columnName);
-          if (columnIndex === -1) return;
-          
-          const value = values[columnIndex];
+        selectedColumns.forEach((columnName, index) => {
           const column = COLUMNS.find(col => col.name === columnName);
+          const value = values[index];
           
           if (column) {
             switch (column.type) {
               case 'number':
-                record[columnName] = value ? parseInt(value.replace(/['"]/g, '')) : null;
+                record[columnName] = value ? parseInt(value) : null;
                 break;
               case 'boolean':
-                record[columnName] = value?.toLowerCase() === 'true';
-                break;
-              case 'date':
-                record[columnName] = parseDate(value);
+                record[columnName] = value === 'true';
                 break;
               default:
-                record[columnName] = value?.replace(/['"]/g, '') || null;
+                record[columnName] = value || null;
             }
           }
         });
         
         return record;
-      }).filter(record => {
-        // Ensure required fields are present
-        const createdDate = record.created;
-        return createdDate !== null && createdDate !== undefined;
-      });
+      }).filter(record => record.teleq_id);
 
-      // Log the first few records for debugging
-      console.log('Sample records:', records.slice(0, 3));
-
-      // First store the selected columns
-      const { error: metadataError } = await supabase
-        .from('analysis_config')
-        .upsert({ 
-          id: 'selected_columns',
-          columns: selectedColumns 
-        });
-
-      if (metadataError) throw metadataError;
-
-      // Then insert the records
       const { error } = await supabase
         .from('call_logs')
         .insert(records);
 
-      if (error) {
-        console.error('Error inserting records:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: `Successfully imported ${records.length} records`,
       });
 
-      // After successful upload, trigger embedding generation
-      await handleGenerateEmbeddings();
-
       navigate('/dashboard');
     } catch (error) {
-      console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred during import",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -276,16 +185,6 @@ const Import = () => {
                   </span>
                 </div>
               </label>
-            </div>
-
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleGenerateEmbeddings}
-                disabled={isGeneratingEmbeddings}
-                variant="outline"
-              >
-                {isGeneratingEmbeddings ? "Generating Embeddings..." : "Generate Embeddings"}
-              </Button>
             </div>
           </div>
         </div>

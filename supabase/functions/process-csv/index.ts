@@ -8,26 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function parseDate(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  
-  try {
-    // Handle year-only dates
-    if (/^\d{4}$/.test(dateStr)) {
-      return `${dateStr}-01-01T00:00:00Z`;
-    }
-    
-    // Try parsing the date and format it properly
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return null;
-    }
-    return date.toISOString();
-  } catch {
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -54,12 +34,12 @@ serve(async (req) => {
       unique_task_id: row[1] || null,
       phone_no: row[2] || null,
       number_pres: row[3] || null,
-      created: parseDate(row[4]),
-      scheduled_time: parseDate(row[5]),
-      closed: parseDate(row[6]),
+      created: row[4] || null,
+      scheduled_time: row[5] || null,
+      closed: row[6] || null,
       form_closing: row[7] || null,
-      first_contact: parseDate(row[8]),
-      created_on: parseDate(row[9]),
+      first_contact: row[8] || null,
+      created_on: row[9] || null,
       created_by: row[10] || null,
       category: row[11] || null,
       first_user_id: row[12] || null,
@@ -73,7 +53,7 @@ serve(async (req) => {
       post_tag_code: row[20] || null,
       type_of_task_closed: row[21] || null,
       recordings: row[22] ? parseInt(row[22]) : null,
-      first_offered_time: parseDate(row[23]),
+      first_offered_time: row[23] || null,
       type_of_task_created: row[24] || null,
       e_identification: row[25] === 'true'
     }))
@@ -92,7 +72,6 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Error processing CSV:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

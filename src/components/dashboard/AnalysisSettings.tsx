@@ -19,18 +19,6 @@ interface AnalysisSettingsProps {
   onSystemPromptChange: (prompt: string) => void;
 }
 
-const DEFAULT_INSTRUCTIONS = `Important Context:
-- The system uses vector search to find the most relevant call logs for each question
-- Only the top 10 most similar call logs are provided in the context
-- A statistical summary of these relevant calls is included
-- Available columns and data points are listed in the context
-
-Tips for better results:
-- Be specific in your questions
-- Focus on patterns and trends in the data
-- Compare different aspects of calls (e.g., duration, methods, outcomes)
-- Ask about relationships between different data points`;
-
 const AnalysisSettings = ({
   isOpen,
   onOpenChange,
@@ -71,12 +59,6 @@ const AnalysisSettings = ({
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium text-blue-800 mb-2">Instructions</h3>
-            <p className="text-sm text-blue-700 whitespace-pre-line">
-              {DEFAULT_INSTRUCTIONS}
-            </p>
-          </div>
           <div>
             <label className="text-sm font-medium mb-2 block">System Prompt</label>
             <Textarea
