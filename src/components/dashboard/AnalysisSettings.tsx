@@ -31,7 +31,7 @@ Tips for better results:
 - Compare different aspects of calls (e.g., duration, methods, outcomes)
 - Ask about relationships between different data points`;
 
-const AnalysisSettings = ({
+export const AnalysisSettings = ({
   isOpen,
   onOpenChange,
   defaultSystemPrompt,
