@@ -1,6 +1,6 @@
 
-import { createClient } from '@supabase/supabase-js';
-import { Configuration, OpenAIApi } from 'openai';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
 
 interface CallLogMatch {
   id: number;
