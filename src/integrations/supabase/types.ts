@@ -39,14 +39,14 @@ export type Database = {
           call_log_id?: number | null
           created_at?: string
           embedding?: string | null
-          id: number
+          id?: never
           metadata?: Json | null
         }
         Update: {
           call_log_id?: number | null
           created_at?: string
           embedding?: string | null
-          id?: number
+          id?: never
           metadata?: Json | null
         }
         Relationships: [

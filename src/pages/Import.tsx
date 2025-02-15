@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,13 +69,29 @@ const Import = () => {
         return `${dateStr}-01-01T00:00:00Z`;
       }
       
-      // Try parsing the date and format it properly
-      const date = new Date(dateStr);
+      // Remove any quotes and trim whitespace
+      const cleanDateStr = dateStr.replace(/['"]/g, '').trim();
+      
+      // Handle different date formats
+      let date;
+      if (cleanDateStr.includes('-')) {
+        date = new Date(cleanDateStr);
+      } else if (cleanDateStr.includes('/')) {
+        // Assuming DD/MM/YYYY format
+        const [day, month, year] = cleanDateStr.split('/');
+        date = new Date(`${year}-${month}-${day}`);
+      } else {
+        date = new Date(cleanDateStr);
+      }
+      
       if (isNaN(date.getTime())) {
+        console.warn(`Invalid date: ${dateStr}`);
         return null;
       }
+      
       return date.toISOString();
-    } catch {
+    } catch (error) {
+      console.warn(`Error parsing date: ${dateStr}`, error);
       return null;
     }
   };
@@ -110,38 +125,46 @@ const Import = () => {
     setIsUploading(true);
     try {
       const text = await file.text();
-      const rows = text.split('\n');
+      const rows = text.split('\n').filter(row => row.trim()); // Remove empty lines
+      const headers = rows[0].split(',').map(h => h.trim());
+      
       const records = rows.slice(1).map(row => {
-        const values = row.split(',');
+        const values = row.split(',').map(v => v.trim());
         const record: Record<string, any> = {};
         
-        selectedColumns.forEach((columnName, index) => {
+        selectedColumns.forEach(columnName => {
+          const columnIndex = headers.indexOf(columnName);
+          if (columnIndex === -1) return;
+          
+          const value = values[columnIndex];
           const column = COLUMNS.find(col => col.name === columnName);
-          const value = values[index];
           
           if (column) {
             switch (column.type) {
               case 'number':
-                record[columnName] = value ? parseInt(value) : null;
+                record[columnName] = value ? parseInt(value.replace(/['"]/g, '')) : null;
                 break;
               case 'boolean':
-                record[columnName] = value === 'true';
+                record[columnName] = value?.toLowerCase() === 'true';
                 break;
               case 'date':
                 record[columnName] = parseDate(value);
                 break;
               default:
-                record[columnName] = value || null;
+                record[columnName] = value?.replace(/['"]/g, '') || null;
             }
           }
         });
         
         return record;
       }).filter(record => {
-        // Filter out records that don't have a valid created date
+        // Ensure required fields are present
         const createdDate = record.created;
         return createdDate !== null && createdDate !== undefined;
       });
+
+      // Log the first few records for debugging
+      console.log('Sample records:', records.slice(0, 3));
 
       // First store the selected columns
       const { error: metadataError } = await supabase
@@ -158,7 +181,10 @@ const Import = () => {
         .from('call_logs')
         .insert(records);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting records:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -170,9 +196,10 @@ const Import = () => {
 
       navigate('/dashboard');
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: error instanceof Error ? error.message : "An error occurred during import",
         variant: "destructive",
       });
     } finally {
