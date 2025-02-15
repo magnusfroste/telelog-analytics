@@ -31,10 +31,10 @@ const defaultChartData = {
 
 // Default token usage data
 const defaultTokenUsage = {
-  total: 0,
-  prompt: 0,
-  completion: 0,
-  dailyAverage: 0
+  model: "",
+  input_tokens: 0,
+  output_tokens: 0,
+  total: 0
 };
 
 export default function Dashboard() {
