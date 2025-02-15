@@ -29,6 +29,14 @@ const defaultChartData = {
   colors: ["#4CAF50", "#2196F3", "#FFC107", "#E91E63", "#9C27B0"]
 };
 
+// Default token usage data
+const defaultTokenUsage = {
+  total: 0,
+  prompt: 0,
+  completion: 0,
+  dailyAverage: 0
+};
+
 export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -62,16 +70,20 @@ export default function Dashboard() {
         onAnalysisSettings={handleAnalysisSettings}
       />
       <MetricsCards metrics={defaultMetrics} />
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
-        <CallsOverviewChart 
-          callLogs={[]} 
-          formatDate={formatDate}
-        />
-        <DistributionCharts 
-          formClosingStats={defaultChartData.formClosingStats}
-          taskCreatedStats={defaultChartData.taskCreatedStats}
-          colors={defaultChartData.colors}
-        />
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+        <div className="lg:col-span-4">
+          <CallsOverviewChart 
+            callLogs={[]} 
+            formatDate={formatDate}
+          />
+        </div>
+        <div className="lg:col-span-3">
+          <DistributionCharts 
+            formClosingStats={defaultChartData.formClosingStats}
+            taskCreatedStats={defaultChartData.taskCreatedStats}
+            colors={defaultChartData.colors}
+          />
+        </div>
       </div>
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <AnalysisSettings 
@@ -81,7 +93,7 @@ export default function Dashboard() {
           systemPrompt={systemPrompt}
           onSystemPromptChange={setSystemPrompt}
         />
-        <DeveloperInfo tokenUsage={0} />
+        <DeveloperInfo tokenUsage={defaultTokenUsage} />
       </div>
       <div className="flex justify-end">
         <GenerateEmbeddings />
