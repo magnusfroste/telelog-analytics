@@ -24,38 +24,34 @@ serve(async (req) => {
   }
 
   try {
-    // First, get existing call_log_ids from embeddings
+    // Get all call logs first
+    const { data: callLogs, error: fetchError } = await supabase
+      .from('call_logs')
+      .select('id, teleq_id, created, form_closing, category, type_of_task_closed');
+
+    if (fetchError) throw fetchError;
+    if (!callLogs?.length) {
+      return new Response(JSON.stringify({ message: "No call logs found" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Found ${callLogs.length} total call logs`);
+
+    // Get existing embeddings
     const { data: existingEmbeddings, error: existingError } = await supabase
       .from('call_log_embeddings')
       .select('call_log_id');
 
     if (existingError) throw existingError;
 
-    // Create array of existing call_log_ids
-    const existingIds = existingEmbeddings?.map(e => e.call_log_id) || [];
+    // Filter out logs that already have embeddings
+    const existingIds = new Set(existingEmbeddings?.map(e => e.call_log_id) || []);
+    const logsToProcess = callLogs.filter(log => !existingIds.has(log.id));
 
-    // Fetch all call logs that don't have embeddings yet
-    let query = supabase
-      .from('call_logs')
-      .select('id, teleq_id, created, form_closing, category, type_of_task_closed');
-    
-    // Only apply the filter if there are existing embeddings
-    if (existingIds.length > 0) {
-      query = query.not('id', 'in', `(${existingIds.join(',')})`);
-    }
+    console.log(`Processing ${logsToProcess.length} new call logs`);
 
-    const { data: callLogs, error: fetchError } = await query;
-
-    if (fetchError) throw fetchError;
-    if (!callLogs?.length) {
-      return new Response(JSON.stringify({ message: "No new call logs to process" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log(`Processing ${callLogs.length} call logs`);
-
-    for (const log of callLogs) {
+    for (const log of logsToProcess) {
       try {
         // Create text representation of the call log
         const textContent = `
@@ -66,6 +62,8 @@ serve(async (req) => {
           Task Type: ${log.type_of_task_closed}
         `.trim();
 
+        console.log(`Generating embedding for call log ${log.id}`);
+
         // Generate embedding
         const embeddingResponse = await openAI.createEmbedding({
           model: "text-embedding-3-small",
@@ -73,6 +71,8 @@ serve(async (req) => {
         });
 
         const [{ embedding }] = embeddingResponse.data.data;
+
+        console.log(`Successfully generated embedding for call log ${log.id}`);
 
         // Store embedding and metadata
         const { error: insertError } = await supabase
@@ -89,16 +89,26 @@ serve(async (req) => {
             }
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error(`Error inserting embedding for call log ${log.id}:`, insertError);
+          throw insertError;
+        }
         
-        console.log(`Created embedding for call log ${log.id}`);
+        console.log(`Successfully stored embedding for call log ${log.id}`);
       } catch (error) {
         console.error(`Error processing call log ${log.id}:`, error);
       }
     }
 
     return new Response(
-      JSON.stringify({ message: `Successfully processed ${callLogs.length} call logs` }),
+      JSON.stringify({ 
+        message: `Successfully processed ${logsToProcess.length} call logs`,
+        details: {
+          total_logs: callLogs.length,
+          existing_embeddings: existingIds.size,
+          new_processed: logsToProcess.length
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
