@@ -19,7 +19,19 @@ interface AnalysisSettingsProps {
   onSystemPromptChange: (prompt: string) => void;
 }
 
-export const AnalysisSettings = ({ // Changed to named export
+const DEFAULT_INSTRUCTIONS = `Important Context:
+- The system uses vector search to find the most relevant call logs for each question
+- Only the top 10 most similar call logs are provided in the context
+- A statistical summary of these relevant calls is included
+- Available columns and data points are listed in the context
+
+Tips for better results:
+- Be specific in your questions
+- Focus on patterns and trends in the data
+- Compare different aspects of calls (e.g., duration, methods, outcomes)
+- Ask about relationships between different data points`;
+
+const AnalysisSettings = ({
   isOpen,
   onOpenChange,
   defaultSystemPrompt,
@@ -91,14 +103,4 @@ export const AnalysisSettings = ({ // Changed to named export
   );
 };
 
-const DEFAULT_INSTRUCTIONS = `Important Context:
-- The system uses vector search to find the most relevant call logs for each question
-- Only the top 10 most similar call logs are provided in the context
-- A statistical summary of these relevant calls is included
-- Available columns and data points are listed in the context
-
-Tips for better results:
-- Be specific in your questions
-- Focus on patterns and trends in the data
-- Compare different aspects of calls (e.g., duration, methods, outcomes)
-- Ask about relationships between different data points`;
+export default AnalysisSettings;
