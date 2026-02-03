@@ -1,69 +1,144 @@
-# Welcome to your Lovable project
+# Telelog Analytics 📊
 
-## Project info
+AI-powered analytics dashboard for Telegram data. Analyze conversations, track engagement metrics, and gain insights from your Telegram activity using OpenAI and Anthropic AI models.
 
-**URL**: https://lovable.dev/projects/a1fe2c23-fc0e-49ee-844f-141b603652f3
+## Features
 
-## How can I edit this code?
+- 📈 **Conversation Analytics** - Analyze message patterns and engagement
+- 🤖 **Multi-AI Support** - Powered by OpenAI GPT-4 and Anthropic Claude
+- 📊 **Interactive Charts** - Beautiful visualizations with Recharts
+- 🔐 **Secure Authentication** - User accounts with Supabase Auth
+- 💾 **Cloud Storage** - All data stored securely in Supabase
+- 📱 **Responsive Design** - Works seamlessly on all devices
+- 🎨 **Modern UI** - Built with shadcn/ui and Tailwind CSS
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend:** React 18, TypeScript, Vite
+- **UI Components:** shadcn/ui, Radix UI
+- **Styling:** Tailwind CSS
+- **AI Models:** OpenAI GPT-4, Anthropic Claude
+- **Backend:** Supabase (Auth, Database, Storage)
+- **Charts:** Recharts
+- **State Management:** TanStack Query
+- **Routing:** React Router v6
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/a1fe2c23-fc0e-49ee-844f-141b603652f3) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
+- Supabase account (free tier available)
+- OpenAI API key
+- Anthropic API key (optional)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+```bash
+git clone https://github.com/magnusfroste/telelog-analytics.git
+cd telelog-analytics
+```
 
-Follow these steps:
+2. Install dependencies:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Configure your `.env` file:
+```env
+VITE_OPENAI_API_KEY=your-openai-api-key-here
+VITE_ANTHROPIC_API_KEY=your-anthropic-api-key-here
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Supabase Setup
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Set up authentication (Email/Password or OAuth)
+3. Create the necessary database tables for storing analytics data
+4. Copy your project URL and anon key to `.env`
+
+### AI API Setup
+
+**OpenAI:**
+1. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Add the API key to `.env`
+
+**Anthropic (Optional):**
+1. Get an API key from [Anthropic Console](https://console.anthropic.com/settings/keys)
+2. Add the API key to `.env`
+
+### Development
+
+Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build
 
-**Use GitHub Codespaces**
+Build for production:
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Preview production build:
+```bash
+npm run preview
+```
 
-## What technologies are used for this project?
+## How It Works
 
-This project is built with .
+1. **Import Data** - Upload your Telegram export data
+2. **AI Analysis** - AI models analyze conversation patterns and sentiment
+3. **View Insights** - Interactive dashboards show key metrics
+4. **Track Trends** - Monitor changes over time
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Project Structure
 
-## How can I deploy this project?
+```
+telelog-analytics/
+├── src/
+│   ├── components/     # React components
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utilities and API clients
+│   └── pages/          # Page components
+└── public/             # Static assets
+```
 
-Simply open [Lovable](https://lovable.dev/projects/a1fe2c23-fc0e-49ee-844f-141b603652f3) and click on Share -> Publish.
+## Features in Detail
 
-## I want to use a custom domain - is that possible?
+### Analytics Dashboard
+- Message frequency analysis
+- Response time metrics
+- Sentiment analysis
+- User engagement tracking
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+### AI-Powered Insights
+- Conversation topic extraction
+- Sentiment trends
+- Key phrase identification
+- Automated summaries
+
+## License
+
+MIT License - feel free to use this for your own analytics projects!
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues or questions, please open an issue on GitHub.
+
+## Privacy
+
+This tool processes Telegram data locally and only sends anonymized data to AI APIs for analysis. No personal data is stored without your consent.
